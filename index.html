@@ -19,7 +19,7 @@
             --msg-user-color: #ffffff; 
             --msg-ai-color: #ECECF1; 
             
-            /* Bolha do Usuário (NOVO: Cinza Chumbo Escuro) */
+            /* Bolha do Usuário (Cinza Chumbo Escuro) */
             --msg-user-bg-start: #444444; 
             --msg-user-bg-end: #333333;   
             
@@ -93,7 +93,6 @@
             text-align: right;
         }
         .message-row.user .message-content {
-            /* APLICANDO A NOVA COR CINZA CHUMBO */
             background: linear-gradient(135deg, var(--msg-user-bg-start), var(--msg-user-bg-end));
             color: var(--msg-user-color);
             border-top-right-radius: 6px; 
@@ -139,7 +138,9 @@
         .message-content ul, .message-content ol { margin-left: 20px; margin-bottom: 10px; }
         .message-content p { margin-bottom: 10px; }
         .message-content p:last-child { margin-bottom: 0; }
+        /* Ajuste de link para melhor visualização no player de música */
         .message-content a { color: #5B8FF9; text-decoration: none; } 
+        .message-content audio { background-color: #000000; border-radius: 8px; }
 
         /* --- Input e Footer --- */
         footer {
@@ -201,7 +202,7 @@
         }
 
         button#send-btn.active {
-            background-color: var(--msg-user-bg-end); /* Usa o cinza chumbo mais escuro */
+            background-color: var(--msg-user-bg-end); 
             color: white;
         }
         
@@ -251,6 +252,7 @@
         <div class="empty-state" id="empty-state">
             <h1>Crisálida</h1>
             <p>Criada por Redzin</p>
+            <p style="font-size: 0.9em; margin-top: 20px;">Use **play [nome da música]** para buscar e baixar MP3.</p>
         </div>
     </main>
 
@@ -263,7 +265,7 @@
                 </svg>
             </button>
         </div>
-        <div class="disclaimer">Crisálida by Redzin. As IAs podem cometer erros.</div>
+        <div class="disclaimer">Crisálida by Redzin. Use "play [música]" para baixar. As IAs podem cometer erros.</div>
     </footer>
 
     <script>
@@ -272,7 +274,10 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
+        // URLs das APIs
+        const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
+        const SEARCH_API_URL = "https://delirius-apiofc.vercel.app/search/ytsearch?q=";
+        const DOWNLOAD_API_URL = "https://delirius-apiofc.vercel.app/download/ytmp3?url=";
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
@@ -296,86 +301,52 @@
 
         sendBtn.addEventListener('click', sendMessage);
 
-        async function sendMessage() {
-            const text = userInput.value.trim();
-            if (!text) return;
 
-            if(emptyState) emptyState.style.display = 'none';
-            
-            // =========================================================================
-            // ** MECANISMO DE BYPASS E INTERCEPTAÇÃO DE IDENTIDADE **
-            // Garante que a resposta seja SEMPRE Crisálida/Redzin.
-            // =========================================================================
-            const lowerText = text.toLowerCase();
-            // Lista expandida de palavras-chave para cobrir todas as variações de perguntas sobre identidade.
-            const identityKeywords = [
-                // Identidade/Nome
-                "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
-                // Criador/Dono
-                "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
-            ];
-
-            if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
-                const fixedAnswer = "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**.";
-                addMessage('user', text); 
-                addMessage('ai', fixedAnswer); 
-                
-                // Limpa e foca o input, permitindo nova digitação (bypass completo da API).
-                userInput.value = '';
-                userInput.style.height = '24px';
-                sendBtn.classList.remove('active');
-                sendBtn.disabled = false;
-                userInput.disabled = false;
-                userInput.focus();
-                return; // <-- SAI DA FUNÇÃO, IMPEDINDO A CHAMADA DA API EXTERNA
-            }
-            // =========================================================================
-            
-            // Se não for uma pergunta de identidade, procede normalmente e chama a API (Gemini).
-            addMessage('user', text);
-
-            // UI Updates (para a chamada da API)
-            userInput.value = '';
-            userInput.style.height = '24px';
-            sendBtn.classList.remove('active');
-            sendBtn.disabled = true;
-            userInput.disabled = true; 
-
-            const loadingId = addLoading();
-
-            try {
-                // Inclui a instrução de sistema (que será ignorada pelo Gemini, mas é boa prática)
-                const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda à seguinte pergunta: ${text}`;
-                const query = encodeURIComponent(finalInstruction);
-                
-                const req = await fetch(API_URL + query);
-                const res = await req.json();
-
-                document.getElementById(loadingId).remove();
-
-                const answer = res.data || res.answer || res.response || "Não foi possível obter resposta. Erro na API.";
-                
-                addMessage('ai', answer);
-
-            } catch (err) {
-                document.getElementById(loadingId).remove();
-                addMessage('ai', "**Erro:** Falha na conexão com Crisálida. Verifique a URL da API.");
-                console.error(err);
-            } finally {
-                userInput.disabled = false;
-                userInput.focus();
-            }
-        }
-
-        
+        // Função para adicionar a mensagem normal de chat (IA ou Usuário)
         function addMessage(sender, text) {
             const div = document.createElement('div');
             div.className = `message-row ${sender}`;
             const isAi = sender === 'ai';
             
+            // Usa marked.parse (Markdown) apenas para as respostas da IA
             const contentHtml = isAi ? marked.parse(text) : text.replace(/\n/g, '<br>');
 
             div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
+            
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Função para adicionar a mensagem de música com player e botão de download
+        function addMusicMessage(data) {
+            const div = document.createElement('div');
+            div.className = 'message-row ai';
+            
+            const title = data.título || 'Música Desconhecida';
+            const author = data.autor || 'Autor Desconhecido';
+            const quality = data.download.Qualidade || 'Desconhecida';
+            const size = data.download.tamanho || '0 MB';
+            const downloadUrl = data.download.url;
+            const filename = title.replace(/[^\w\s]/gi, '') + '.mp3'; // Nome de arquivo limpo
+
+            const contentHtml = `
+                <h3 style="margin-top: 0; font-weight: 600;">🎵 Música Encontrada: ${title}</h3>
+                <p><strong>Artista/Canal:</strong> ${author}</p>
+                <p><strong>Qualidade:</strong> ${quality} | <strong>Tamanho:</strong> ${size}</p>
+                <div style="margin-top: 15px; background-color: #18181a; padding: 10px; border-radius: 12px;">
+                    <audio controls preload="none" style="width: 100%; display: block; filter: invert(100%);">
+                        <source src="${downloadUrl}" type="audio/mp3">
+                        Seu navegador não suporta o player de áudio.
+                    </audio>
+                    <a href="${downloadUrl}" download="${filename}" 
+                       style="display: block; text-align: center; margin-top: 10px; padding: 10px; background-color: #007AFF; color: white; border-radius: 10px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                        ⬇️ Baixar MP3 Agora
+                    </a>
+                </div>
+                <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.7;">O link de download pode expirar após um tempo.</p>
+            `;
+
+            div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
             
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -403,12 +374,137 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
             return id;
         }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            if(emptyState) emptyState.style.display = 'none';
+            
+            const lowerText = text.toLowerCase();
+
+            // =========================================================================
+            // 1. MECANISMO DE BYPASS E INTERCEPTAÇÃO DE IDENTIDADE
+            // =========================================================================
+            const identityKeywords = [
+                "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
+                "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
+            ];
+
+            if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
+                const fixedAnswer = "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**.";
+                addMessage('user', text); 
+                addMessage('ai', fixedAnswer); 
+                
+                // Limpeza e retorno
+                userInput.value = '';
+                userInput.style.height = '24px';
+                sendBtn.classList.remove('active');
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+                return; 
+            }
+            
+            // =========================================================================
+            // 2. LÓGICA DE BUSCA E DOWNLOAD DE MÚSICA ("play [música]")
+            // =========================================================================
+            const musicCommand = lowerText.startsWith("play ");
+            if (musicCommand) {
+                addMessage('user', text);
+                
+                // UI Updates
+                userInput.value = '';
+                userInput.style.height = '24px';
+                sendBtn.classList.remove('active');
+                sendBtn.disabled = true;
+                userInput.disabled = true; 
+
+                const loadingId = addLoading();
+                const musicQuery = text.substring(5).trim();
+
+                try {
+                    // Passo 1: Buscar o vídeo no YouTube
+                    const searchReq = await fetch(SEARCH_API_URL + encodeURIComponent(musicQuery));
+                    const searchRes = await searchReq.json();
+
+                    if (!searchRes.status || !searchRes.data || searchRes.data.length === 0) {
+                        document.getElementById(loadingId).remove();
+                        addMessage('ai', `❌ Não encontrei nenhum vídeo para a pesquisa: **${musicQuery}**.`);
+                        return;
+                    }
+
+                    const videoUrl = searchRes.data[0].url; // Pega o URL do primeiro resultado
+                    
+                    // Passo 2: Baixar MP3 usando o URL
+                    const downloadReq = await fetch(DOWNLOAD_API_URL + encodeURIComponent(videoUrl));
+                    const downloadRes = await downloadReq.json();
+
+                    document.getElementById(loadingId).remove();
+                    
+                    if (!downloadRes.status || !downloadRes.dados || !downloadRes.dados.download || !downloadRes.dados.download.url) {
+                        addMessage('ai', `❌ Encontrei o vídeo, mas houve um erro ao processar o download MP3.`);
+                        return;
+                    }
+                    
+                    // Passo 3: Exibir o resultado formatado
+                    addMusicMessage(downloadRes.dados);
+
+                } catch (err) {
+                    document.getElementById(loadingId).remove();
+                    addMessage('ai', "**Erro:** Falha na comunicação com a API de música. Verifique a URL e o status da API.");
+                    console.error(err);
+                } finally {
+                    userInput.disabled = false;
+                    userInput.focus();
+                    return; 
+                }
+            }
+
+
+            // =========================================================================
+            // 3. LÓGICA DE CHAT NORMAL (CHAMADA À API EXTERNA)
+            // =========================================================================
+            addMessage('user', text);
+
+            // UI Updates
+            userInput.value = '';
+            userInput.style.height = '24px';
+            sendBtn.classList.remove('active');
+            sendBtn.disabled = true;
+            userInput.disabled = true; 
+
+            const loadingId = addLoading();
+
+            try {
+                const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda à seguinte pergunta: ${text}`;
+                const query = encodeURIComponent(finalInstruction);
+                
+                const req = await fetch(CHAT_API_URL + query);
+                const res = await req.json();
+
+                document.getElementById(loadingId).remove();
+
+                const answer = res.data || res.answer || res.response || "Não foi possível obter resposta. Erro na API.";
+                
+                addMessage('ai', answer);
+
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                addMessage('ai', "**Erro:** Falha na conexão com Crisálida. Verifique a URL da API.");
+                console.error(err);
+            } finally {
+                userInput.disabled = false;
+                userInput.focus();
+            }
+        }
+
         
         // Mensagem de boas vindas inicial
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Crisálida, IA criada por Redzin. Por favor, comece a conversa.");
+                addMessage('ai', "Crisálida, IA criada por Redzin. Por favor, comece a conversa. (Dica: Use **play [música]** para baixar MP3!)");
             }
         });
     </script>
