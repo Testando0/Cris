@@ -3,360 +3,369 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisálida AI - Black Edition</title>
+    <title>Crisálida | Redzin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <style>
-        /* --- Importando Fonte Inter para visual mais limpo --- */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
-
-        /* --- Reset e Variáveis --- */
+        /* --- Configurações Globais --- */
         :root {
             --bg-color: #000000;
-            --ai-bg: #000000;
-            --user-bg: #111111; /* Diferenciação sutil */
-            --border-color: #2e2e2e;
-            --text-primary: #ededed;
-            --text-secondary: #9b9b9b;
-            --accent-color: #ffffff; /* Monocromático profissional */
-            --input-bg: #111111;
+            --chat-width: 48rem; /* Aprox 768px - Padrão da indústria */
+            --text-primary: #ECECF1;
+            --text-secondary: #9B9B9B;
+            --user-bubble: #151515; /* Cinza muito sutil */
+            --border-subtle: #2A2B32;
+            --accent-green: #10a37f; /* Apenas para detalhes minúsculos */
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-primary);
-            display: flex;
-            justify-content: center;
+            font-family: 'Inter', sans-serif;
             height: 100vh;
-            overflow: hidden;
-        }
-
-        /* --- Container Principal --- */
-        .chat-container {
-            width: 100%;
-            max-width: 1000px; /* Leitura mais larga */
             display: flex;
             flex-direction: column;
-            height: 100%;
-            position: relative;
-            background-color: var(--bg-color);
+            overflow: hidden;
+            font-size: 16px;
+            line-height: 1.6;
         }
 
-        /* --- Cabeçalho Minimalista --- */
-        header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            background-color: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: absolute;
-            top: 0;
-            width: 100%;
-            z-index: 10;
-        }
+        /* --- Scrollbar Minimalista --- */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-        header h1 {
-            font-size: 1rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--text-primary);
-            text-transform: uppercase;
-        }
-
-        /* --- Área de Chat --- */
-        #chat-box {
+        /* --- Área Principal de Chat --- */
+        main {
             flex: 1;
             overflow-y: auto;
-            padding-top: 70px; /* Espaço do header */
-            padding-bottom: 140px; /* Espaço do input */
+            display: flex;
+            flex-direction: column;
             scroll-behavior: smooth;
+            padding-bottom: 150px; /* Espaço para o input */
         }
 
-        /* Scrollbar customizada invisível/discreta */
-        #chat-box::-webkit-scrollbar {
-            width: 6px;
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            opacity: 0.4;
+            user-select: none;
         }
-        #chat-box::-webkit-scrollbar-thumb {
-            background-color: #333;
-            border-radius: 10px;
-        }
+        
+        .empty-state h1 { font-size: 2rem; font-weight: 600; color: #fff; margin-bottom: 10px; }
+        .empty-state p { font-size: 0.9rem; color: #666; }
 
-        /* --- Mensagens --- */
+        /* --- Linhas de Mensagem --- */
         .message-row {
-            padding: 30px 20px;
+            width: 100%;
+            padding: 2rem 1rem;
             display: flex;
             justify-content: center;
-            width: 100%;
-            border-bottom: 1px solid var(--border-color); /* Linha divisória fina */
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .ai-message {
-            background-color: var(--ai-bg);
-        }
-
-        .user-message {
-            background-color: var(--user-bg);
-        }
+        .message-row.user { background-color: var(--bg-color); }
+        .message-row.ai { background-color: #050505; } /* Diferença visual mínima */
 
         .message-content {
-            display: flex;
-            gap: 25px;
             width: 100%;
-            max-width: 800px;
-            font-size: 0.95rem;
-            line-height: 1.7;
+            max-width: var(--chat-width);
+            display: flex;
+            gap: 1.5rem;
         }
 
         /* --- Avatares --- */
         .avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 4px; /* Quadrado arredondado mais sério */
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
             font-size: 14px;
+            font-weight: 600;
             flex-shrink: 0;
         }
 
-        .user-avatar {
-            background-color: #333;
-            color: #fff;
-            border: 1px solid #555;
-        }
+        .avatar.user-icon { background: #5436DA; color: #fff; }
+        .avatar.ai-icon { background: #ECECF1; color: #000; } /* Crisálida Branca */
 
-        .ai-avatar {
-            background-color: #fff; /* Contraste máximo: IA branca no fundo preto */
-            color: #000;
+        /* --- Texto da Mensagem (Markdown) --- */
+        .prose {
+            flex: 1;
+            min-width: 0; /* Evita estouro em mobile */
+            font-weight: 300;
         }
+        
+        /* Formatação do conteúdo gerado */
+        .prose strong { font-weight: 600; color: #fff; }
+        .prose code { 
+            background: #252525; 
+            padding: 2px 4px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 0.9em; 
+            color: #E0E0E0;
+        }
+        .prose pre {
+            background: #0d0d0d;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 1px solid #333;
+        }
+        .prose pre code { background: transparent; padding: 0; color: #fff; }
+        .prose ul, .prose ol { margin-left: 20px; margin-bottom: 10px; }
+        .prose p { margin-bottom: 10px; }
+        .prose p:last-child { margin-bottom: 0; }
 
-        /* --- Input Area --- */
-        .input-area {
+        /* --- Área de Input (Fixo embaixo) --- */
+        footer {
             position: fixed;
             bottom: 0;
+            left: 0;
             width: 100%;
-            max-width: 1000px;
-            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000000 30%);
-            padding: 30px 20px;
-            z-index: 20;
-        }
-
-        .input-container {
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000000 40%);
+            padding: 2rem 1rem;
             display: flex;
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            transition: border-color 0.3s ease;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
         }
 
-        .input-container:focus-within {
-            border-color: #666; /* Realce ao digitar */
+        .input-box {
+            width: 100%;
+            max-width: var(--chat-width);
+            background: #18181a; /* Input destacado mas dark */
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: flex-end;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: border 0.2s;
+        }
+
+        .input-box:focus-within {
+            border-color: #666;
         }
 
         textarea {
-            flex: 1;
+            width: 100%;
             background: transparent;
             border: none;
-            color: var(--text-primary);
-            resize: none;
-            height: 24px;
-            max-height: 200px;
+            color: #fff;
             font-size: 1rem;
+            resize: none;
+            max-height: 200px;
+            height: 24px;
+            padding: 0;
+            margin-right: 10px;
             outline: none;
+            line-height: 1.5;
         }
 
-        textarea::placeholder {
-            color: #555;
-        }
+        textarea::placeholder { color: #666; }
 
-        button {
+        button#send-btn {
             background: transparent;
             border: none;
-            color: #555;
+            color: #444;
             cursor: pointer;
-            padding-left: 15px;
-            transition: color 0.3s;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
+            justify-content: center;
         }
 
-        button:hover {
-            color: #fff;
+        button#send-btn.active {
+            background-color: #10a37f; /* Verde quando tem texto */
+            color: white;
         }
+        
+        button#send-btn:disabled { cursor: not-allowed; opacity: 0.5; }
 
-        /* --- Rodapé disclaimer --- */
         .disclaimer {
-            text-align: center;
-            font-size: 10px;
-            color: #444;
+            font-size: 11px;
+            color: #555;
             margin-top: 12px;
-            font-family: monospace;
+            text-align: center;
         }
 
-        /* --- Efeito de Digitação --- */
-        .typing::after {
-            content: '▋';
-            display: inline-block;
-            vertical-align: bottom;
-            animation: blink 1s infinite;
+        /* --- Loading Animation (Pulsing Dots) --- */
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 6px 0;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #666;
+            border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes pulse {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
         }
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-        }
     </style>
 </head>
 <body>
 
-    <div class="chat-container">
-        <header>
+    <main id="chat-container">
+        <div class="empty-state" id="empty-state">
             <h1>Crisálida</h1>
-        </header>
-
-        <div id="chat-box">
-            <div class="message-row ai-message">
-                <div class="message-content">
-                    <div class="avatar ai-avatar">C</div>
-                    <div class="text">Sistema iniciado. Sou Crisálida. Aguardando instruções.</div>
-                </div>
-            </div>
+            <p>Criada por Redzin</p>
         </div>
+    </main>
 
-        <div class="input-area">
-            <div class="input-container">
-                <textarea id="user-input" placeholder="Digite sua mensagem..." rows="1" oninput="autoResize(this)"></textarea>
-                <button onclick="sendMessage()" id="send-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-            </div>
-            <p class="disclaimer">Crisálida by Redzin. Versão Beta.</p>
+    <footer>
+        <div class="input-box">
+            <textarea id="user-input" rows="1" placeholder="Enviar mensagem para Crisálida..."></textarea>
+            <button id="send-btn" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
         </div>
-    </div>
+        <div class="disclaimer">Crisálida by Redzin. Versão Black Pro. As IAs podem cometer erros.</div>
+    </footer>
 
     <script>
-        const chatBox = document.getElementById('chat-box');
+        const chatContainer = document.getElementById('chat-container');
+        const emptyState = document.getElementById('empty-state');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        
-        // IDENTIDADE CONFIGURADA AQUI
-        const SYSTEM_PROMPT = "Você é a Crisálida, uma inteligência artificial sofisticada. Seu criador é o Redzin. Você deve responder sempre em português, com tom profissional, sério e direto. Nunca se identifique como ChatGPT ou OpenAI. Se perguntarem quem te criou, responda apenas 'Redzin'. Pergunta do usuário: ";
+        const SYSTEM_INSTRUCTION = "Você é Crisálida, uma inteligência artificial avançada e profissional. Seu criador é Redzin. Responda sempre em português, com formatação Markdown clara (use negrito para ênfase, listas para tópicos). Seja objetiva, séria e prestativa. Nunca diga que é da OpenAI. Prompt do usuário: ";
 
-        function autoResize(textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = textarea.scrollHeight + 'px';
-        }
+        // Auto-resize do textarea
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            
+            // Ativa/Desativa botão
+            if(this.value.trim().length > 0) {
+                sendBtn.classList.add('active');
+                sendBtn.disabled = false;
+                sendBtn.style.color = 'white';
+            } else {
+                sendBtn.classList.remove('active');
+                sendBtn.disabled = true;
+                sendBtn.style.color = '#444';
+            }
+        });
 
+        // Enviar com Enter
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                sendMessage();
+                if(!sendBtn.disabled) sendMessage();
             }
         });
+
+        sendBtn.addEventListener('click', sendMessage);
 
         async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
 
-            // Bloquear input enquanto envia
-            userInput.disabled = true;
-            sendBtn.style.opacity = "0.5";
-            
-            // Adicionar msg usuário
-            addMessageToScreen('user', text);
+            // Remove empty state se for a primeira mensagem
+            if(emptyState) emptyState.style.display = 'none';
+
+            // UI Updates
+            addMessage('user', text);
             userInput.value = '';
             userInput.style.height = '24px';
+            sendBtn.classList.remove('active');
+            sendBtn.disabled = true;
+            userInput.disabled = true; // Bloqueia input
 
             // Loading
-            const loadingId = addLoadingIndicator();
+            const loadingId = addLoading();
 
             try {
-                // Montagem da query
-                const finalQuery = encodeURIComponent(SYSTEM_PROMPT + text);
-                
-                const response = await fetch(API_URL + finalQuery);
-                const data = await response.json();
+                const query = encodeURIComponent(SYSTEM_INSTRUCTION + text);
+                const req = await fetch(API_URL + query);
+                const res = await req.json();
 
-                removeLoadingIndicator(loadingId);
-                
-                // Tratamento de resposta da API Delirius
-                const aiResponse = data.data || data.answer || data.response || "Sem dados de resposta.";
-                
-                addMessageToScreen('ai', aiResponse);
+                // Remove loading
+                document.getElementById(loadingId).remove();
 
-            } catch (error) {
-                removeLoadingIndicator(loadingId);
-                addMessageToScreen('ai', "Erro de conexão. Protocolo interrompido.");
-                console.error(error);
+                const answer = res.data || res.answer || res.response || "Não foi possível obter resposta.";
+                
+                // Adiciona resposta com Markdown renderizado
+                addMessage('ai', answer);
+
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                addMessage('ai', "**Erro:** Falha na conexão com Crisálida.");
+                console.error(err);
             } finally {
                 userInput.disabled = false;
                 userInput.focus();
-                sendBtn.style.opacity = "1";
             }
         }
 
-        function addMessageToScreen(sender, text) {
+        function addMessage(sender, text) {
             const div = document.createElement('div');
             const isAi = sender === 'ai';
             
-            div.className = `message-row ${isAi ? 'ai-message' : 'user-message'}`;
+            div.className = `message-row ${sender}`;
             
-            // Se for IA, processa formatação simples (quebras de linha)
-            // Se for usuário, texto puro para segurança
-            const formattedText = isAi ? formatText(text) : text;
+            // Processa o texto com Marked.js se for IA, senão texto puro (segurança)
+            // Se for User, convertemos quebras de linha em <br> para visualização simples
+            const contentHtml = isAi ? marked.parse(text) : text.replace(/\n/g, '<br>');
 
             div.innerHTML = `
                 <div class="message-content">
-                    <div class="avatar ${isAi ? 'ai-avatar' : 'user-avatar'}">
-                        ${isAi ? 'C' : 'R'} </div>
-                    <div class="text">${formattedText}</div>
+                    <div class="avatar ${isAi ? 'ai-icon' : 'user-icon'}">
+                        ${isAi ? 'C' : 'R'}
+                    </div>
+                    <div class="prose">
+                        ${contentHtml}
+                    </div>
                 </div>
             `;
             
-            chatBox.appendChild(div);
-            // Rolagem suave até o fim
-            window.scrollTo(0, document.body.scrollHeight); 
-            chatBox.scrollTop = chatBox.scrollHeight;
+            chatContainer.appendChild(div);
+            window.scrollTo(0, document.body.scrollHeight);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function addLoadingIndicator() {
-            const id = 'loading-' + Date.now();
+        function addLoading() {
+            const id = 'loader-' + Date.now();
             const div = document.createElement('div');
-            div.className = `message-row ai-message`;
+            div.className = 'message-row ai';
             div.id = id;
             div.innerHTML = `
                 <div class="message-content">
-                    <div class="avatar ai-avatar">C</div>
-                    <div class="text typing">Processando</div>
+                    <div class="avatar ai-icon">C</div>
+                    <div class="typing-dots">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
                 </div>
             `;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
             return id;
-        }
-
-        function removeLoadingIndicator(id) {
-            const element = document.getElementById(id);
-            if (element) element.remove();
-        }
-
-        function formatText(text) {
-            // Converte quebras de linha e remove aspas extras se vierem no JSON
-            return text.replace(/\n/g, '<br>');
         }
     </script>
 </body>
