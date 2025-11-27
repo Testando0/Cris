@@ -15,7 +15,7 @@
             --chat-width: 48rem; 
             --text-primary: #ECECF1;
             
-            /* Cores Estilo Dark Mode Personalizado */
+            /* Cores Estilo Dark Mode Personalizado (Cinza) */
             --msg-user-color: #ffffff; 
             --msg-ai-color: #ECECF1; 
             
@@ -23,9 +23,12 @@
             --msg-user-bg-start: #444444; 
             --msg-user-bg-end: #333333;   
             
-            /* Bolha da IA (iOS Dark Gray - Cinza escuro que você prefere) */
+            /* Bolha da IA (iOS Dark Gray - Cinza escuro) */
             --msg-ai-bg: #252525; 
             --footer-height-buffer: 200px; 
+            
+            /* Nova variável para o botão de download (Cinza de Ação) */
+            --action-gray: #444444;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -280,7 +283,6 @@
         const MUSIC_API_BASE_URL = "https://apis.davidcyriltech.my.id/play";
         
         // CHAVE DE API: SUBSTITUA 'REDZ' PELA SUA CHAVE REAL
-        // NOTA: Se a sua API realmente não usar uma chave, deixe as aspas vazias: const API_KEY_DAVIDCYRIL = "";
         const API_KEY_DAVIDCYRIL = "REDZ"; 
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
@@ -320,27 +322,21 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Função para adicionar a mensagem de música com player e botão de download (USANDO CHAVES EM INGLÊS)
+        // Função para adicionar a mensagem de música com player e botão de download (COR RIGIDA PARA CINZA)
         function addMusicMessage(data) {
-            // NOTE: 'data' é o objeto 'result' da API
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
-            // USANDO AS CHAVES EM INGLÊS CONFORME O JSON FORNECIDO PELO USUÁRIO
             const title = data.title || 'Música Desconhecida';
             const duration = data.duration || 'Duração Desconhecida';
-            
-            // O campo 'views' é numérico no JSON, então formatamos.
             const views = data.views ? String(data.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
-            
-            const downloadUrl = data.download_url; // Chave Correta: download_url
+            const downloadUrl = data.download_url;
             
             if (!downloadUrl) {
                  addMessage('ai', `❌ Não foi possível extrair o URL de download. O resultado estava incompleto.`);
                  return;
             }
 
-            // O nome do arquivo será o título, removendo caracteres especiais e truncando.
             const filename = title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3';
 
             const contentHtml = `
@@ -352,7 +348,7 @@
                         Seu navegador não suporta o player de áudio.
                     </audio>
                     <a href="${downloadUrl}" download="${filename}" 
-                       style="display: block; text-align: center; margin-top: 10px; padding: 10px; background-color: #007AFF; color: white; border-radius: 10px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                       style="display: block; text-align: center; margin-top: 10px; padding: 10px; background-color: var(--action-gray); color: white; border-radius: 10px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
                         ⬇️ Baixar MP3 Agora
                     </a>
                 </div>
@@ -398,7 +394,7 @@
             
             let errorMessage = null;
 
-            // LÓGICA DE BYPASS DE IDENTIDADE (MANTIDA)
+            // LÓGICA DE BYPASS DE IDENTIDADE
             const identityKeywords = [
                 "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
                 "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
@@ -435,10 +431,9 @@
                 const musicQuery = text.substring(5).trim();
 
                 try {
-                    // 1. Construção da Requisição (ORDEM CORRETA: ?query=...&apikey=...)
+                    // 1. Construção da Requisição (Ordem Corrigida)
                     const encodedQuery = encodeURIComponent(musicQuery);
                     
-                    // Constrói a URL na ORDEM SOLICITADA: ?query=[música]&apikey=[chave]
                     const musicSearchUrl = `${MUSIC_API_BASE_URL}?query=${encodedQuery}&apikey=${API_KEY_DAVIDCYRIL}`;
 
                     let musicRes;
@@ -447,11 +442,11 @@
                         const musicReq = await fetch(musicSearchUrl);
                         musicRes = await musicReq.json();
                     } catch (e) {
-                        errorMessage = `Falha na requisição de música (Erro de Conexão ou JSON inválido). A URL usada foi: ${musicSearchUrl}`;
+                        errorMessage = `Falha na requisição de música (Erro de Conexão ou JSON inválido).`;
                         throw new Error(errorMessage);
                     }
                     
-                    // 2. Verificação de Sucesso da Resposta (VALIDAÇÃO USANDO CHAVES EM INGLÊS)
+                    // 2. Verificação de Sucesso da Resposta
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download_url) {
                         
                         if (musicQuery === '') {
