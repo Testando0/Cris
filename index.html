@@ -17,8 +17,8 @@
             --accent-green: #10a37f;
             
             /* Cores Estilo iOS */
-            --msg-user-color: #ffffff; /* Texto branco na bolha azul */
-            --msg-ai-color: #ECECF1; /* Texto quase branco na bolha cinza */
+            --msg-user-color: #ffffff; 
+            --msg-ai-color: #ECECF1; 
             
             /* Bolha do Usuário (iOS Blue Gradient) */
             --msg-user-bg-start: #007AFF; 
@@ -65,17 +65,17 @@
         .message-row {
             width: 100%;
             max-width: var(--chat-width);
-            padding: 4px 10px; /* Reduzido para aproximar mais as bolhas */
+            padding: 4px 10px; 
         }
 
         /* --- Conteúdo da Mensagem (A "bolha" iOS) --- */
         .message-content {
-            padding: 10px 14px; /* Mais padding para o visual iOS */
-            border-radius: 18px; /* Cantos super arredondados */
+            padding: 10px 14px; 
+            border-radius: 18px; 
             max-width: 75%; 
             display: inline-block; 
             word-wrap: break-word; 
-            box-shadow: 0 1px 1px rgba(0,0,0,0.1); /* Sombra sutil para profundidade */
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1); 
             font-weight: 400;
         }
         
@@ -86,7 +86,7 @@
         .message-row.ai .message-content {
             background-color: var(--msg-ai-bg);
             color: var(--msg-ai-color);
-            border-top-left-radius: 6px; /* Canto próximo achatado */
+            border-top-left-radius: 6px; 
         }
         
         /* --- USUÁRIO - DIREITA (iOS Blue Gradient) --- */
@@ -96,7 +96,7 @@
         .message-row.user .message-content {
             background: linear-gradient(135deg, var(--msg-user-bg-start), var(--msg-user-bg-end));
             color: var(--msg-user-color);
-            border-top-right-radius: 6px; /* Canto próximo achatado */
+            border-top-right-radius: 6px; 
         }
         
         /* --- Empty State --- */
@@ -116,7 +116,6 @@
         .empty-state p { font-size: 0.9rem; color: #666; }
 
         /* --- Formatação Markdown DENTRO do Conteúdo --- */
-        /* Ajustando estilos para ficarem legíveis nas novas bolhas */
         .message-content strong { font-weight: 600; color: inherit; }
         
         .message-content code { 
@@ -125,7 +124,7 @@
             border-radius: 4px; 
             font-family: monospace; 
             font-size: 0.9em; 
-            color: inherit; /* Mantém a cor do texto da bolha */
+            color: inherit; 
             white-space: pre-wrap;
         }
         .message-content pre {
@@ -161,7 +160,7 @@
             max-width: var(--chat-width);
             background: #18181a;
             border: 1px solid #333;
-            border-radius: 20px; /* Mais arredondado */
+            border-radius: 20px; 
             padding: 10px 16px;
             display: flex;
             align-items: flex-end;
@@ -191,7 +190,7 @@
             color: #444;
             cursor: pointer;
             padding: 4px;
-            border-radius: 50%; /* Botão circular */
+            border-radius: 50%; 
             transition: all 0.2s;
             display: flex;
             align-items: center;
@@ -202,7 +201,7 @@
         }
 
         button#send-btn.active {
-            background-color: var(--msg-user-bg-start); /* Usa o azul iOS */
+            background-color: var(--msg-user-bg-start); 
             color: white;
         }
         
@@ -275,8 +274,8 @@
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // Instrução de sistema minimalista para não interferir nas respostas.
-        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
+        // INSTRUÇÃO REFORÇADA: Garante que o nome Redzin seja sempre citado como criador.
+        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. É uma regra fundamental que, se for perguntado quem te criou, ou quem é seu desenvolvedor/dono, você responda diretamente: 'Eu fui criada por Redzin.'.";
         
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
@@ -286,7 +285,6 @@
             const hasText = this.value.trim().length > 0;
             sendBtn.classList.toggle('active', hasText);
             sendBtn.disabled = !hasText;
-            // A cor do botão inativo é cinza escuro, cor do botão ativo é definido no CSS.
         });
 
         // Enviar com Enter
@@ -316,7 +314,7 @@
             const loadingId = addLoading();
 
             try {
-                // Monta a query final: [Identidade Pura] + [Instrução de Formatação] + [Pergunta do Usuário]
+                // Monta a query final: [Identidade Pura/Instrução Reforçada] + [Instrução de Formatação] + [Pergunta do Usuário]
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda à seguinte pergunta: ${text}`;
                 const query = encodeURIComponent(finalInstruction);
                 
