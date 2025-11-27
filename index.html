@@ -60,7 +60,7 @@
             align-items: center; 
         }
 
-        /* --- Linha da Mensagem (Container) --- */
+        /* --- Linha da Mensagem (Container) */
         .message-row {
             width: 100%;
             max-width: var(--chat-width);
@@ -317,14 +317,26 @@
 
         // Função para adicionar a mensagem de música com player e botão de download
         function addMusicMessage(data) {
+            // NOTE: 'data' é o objeto JSON aninhado sob 'data' da resposta da API de download
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
-            const title = data.título || 'Música Desconhecida';
-            const author = data.autor || 'Autor Desconhecido';
-            const quality = data.download.Qualidade || 'Desconhecida';
-            const size = data.download.tamanho || '0 MB';
-            const downloadUrl = data.download.url;
+            const title = data.title || 'Música Desconhecida'; // Ajuste: usando 'title'
+            const author = data.author || 'Autor Desconhecido'; // Ajuste: usando 'author'
+            
+            // Certifique-se de que data.download existe
+            const downloadInfo = data.download || {}; 
+            
+            const quality = downloadInfo.quality || 'Desconhecida';
+            const size = downloadInfo.size || '0 MB';
+            const downloadUrl = downloadInfo.url;
+            
+            // Verifica se o URL é válido antes de prosseguir
+            if (!downloadUrl) {
+                 addMessage('ai', `❌ Não foi possível extrair o URL de download. Resposta da API de download incompleta.`);
+                 return;
+            }
+
             const filename = title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3';
 
             const contentHtml = `
@@ -381,10 +393,9 @@
             
             const lowerText = text.toLowerCase();
             
-            // Variável para armazenar a mensagem de erro
             let errorMessage = null;
 
-            // LÓGICA DE BYPASS DE IDENTIDADE (MANTIDA)
+            // LÓGICA DE BYPASS DE IDENTIDADE
             const identityKeywords = [
                 "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
                 "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
@@ -428,7 +439,7 @@
                         const searchReq = await fetch(searchUrl);
                         searchRes = await searchReq.json();
                     } catch (e) {
-                        errorMessage = `Falha na requisição de busca (Erro de Conexão ou JSON inválido). Verifique a URL: ${searchUrl}`;
+                        errorMessage = `Falha na requisição de busca (Erro de Conexão ou JSON inválido).`;
                         throw new Error(errorMessage);
                     }
                     
@@ -446,18 +457,20 @@
                         const downloadReq = await fetch(downloadUrl);
                         downloadRes = await downloadReq.json();
                     } catch (e) {
-                        errorMessage = `Falha na requisição de download (Erro de Conexão ou JSON inválido). URL: ${downloadUrl}`;
+                        errorMessage = `Falha na requisição de download (Erro de Conexão ou JSON inválido).`;
                         throw new Error(errorMessage);
                     }
 
-                    if (!downloadRes.status || !downloadRes.dados || !downloadRes.dados.download || !downloadRes.dados.download.url) {
-                        errorMessage = `A API de download não retornou o link final (status/dados.download.url inválido).`;
+                    // *** CORREÇÃO APLICADA AQUI: USANDO downloadRes.data ***
+                    if (!downloadRes.status || !downloadRes.data || !downloadRes.data.download || !downloadRes.data.download.url) {
+                        errorMessage = `A API de download não retornou o link final ou falhou na conversão. (Estrutura inválida: status/data.download.url).`;
                         throw new Error(errorMessage);
                     }
                     
                     // 3. Sucesso: Exibir o resultado
                     document.getElementById(loadingId).remove();
-                    addMusicMessage(downloadRes.dados);
+                    // *** CORREÇÃO APLICADA AQUI: PASSANDO downloadRes.data ***
+                    addMusicMessage(downloadRes.data);
 
                 } catch (err) {
                     // Captura e exibe o erro na tela
