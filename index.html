@@ -276,7 +276,7 @@
         // URLs das APIs de Chat
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // NOVA URL da API de Música (Alterado apikey para REDZ conforme a última mensagem do usuário)
+        // NOVA URL da API de Música (mantendo apikey=REDZ)
         const MUSIC_API_URL = "https://apis.davidcyriltech.my.id/play?apikey=REDZ&query=";
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
@@ -318,21 +318,20 @@
 
         // Função para adicionar a mensagem de música com player e botão de download (AJUSTADA para nova API)
         function addMusicMessage(data) {
-            // NOTE: 'data' é o objeto 'resultado' da nova API
+            // NOTE: 'data' é o objeto 'result' da nova API
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
-            // Usando as chaves corretas com acentos:
-            const title = data.título || 'Música Desconhecida';
-            const duration = data.duração || 'Duração Desconhecida';
+            // USANDO AS CHAVES EM INGLÊS CONFORME O ÚLTIMO JSON
+            const title = data.title || 'Música Desconhecida';
+            const duration = data.duration || 'Duração Desconhecida';
             
-            // O campo 'visualizações' pode não existir ou ser numérico/string. Tentativa de formatação segura.
-            const views = data.visualizações ? String(data.visualizações).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
+            // O campo 'views' é numérico no JSON, então formatamos.
+            const views = data.views ? String(data.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
             
             const downloadUrl = data.download_url;
             
             if (!downloadUrl) {
-                 // Este caso já deveria ser pego na validação de sucesso, mas serve como fallback.
                  addMessage('ai', `❌ Não foi possível extrair o URL de download. O resultado estava incompleto.`);
                  return;
             }
@@ -444,16 +443,15 @@
                         throw new Error(errorMessage);
                     }
                     
-                    // 2. Verificação de Sucesso da Resposta (Validação Robusta)
-                    // Verifica se o status é estritamente TRUE (lida com "verdadeiro" ou "false" se forem strings)
-                    if (musicRes.status !== true || !musicRes.resultado || !musicRes.resultado.download_url) {
-                        errorMessage = `A API de música retornou erro (${musicRes.criador ? 'Criador: ' + musicRes.criador : 'API sem criador'}). O resultado ou o URL de download estão ausentes.`;
+                    // 2. Verificação de Sucesso da Resposta (Validação Robusta - USANDO CHAVES EM INGLÊS)
+                    // Verifica se o status é estritamente TRUE (boolean)
+                    if (musicRes.status !== true || !musicRes.result || !musicRes.result.download_url) {
                         
-                        // Mensagem de fallback para quando a música não for encontrada
-                        if (musicRes.status === false && musicRes.mensagem) {
-                            errorMessage = `Música não encontrada. Detalhe da API: ${musicRes.mensagem}`;
-                        } else if (musicQuery === '') {
+                        // Mensagem de fallback para quando o comando estiver vazio
+                        if (musicQuery === '') {
                              errorMessage = `O comando **play** deve ser seguido pelo nome da música. Tente: **play Faded**`;
+                        } else {
+                            errorMessage = `A API de música retornou erro ou o resultado está incompleto. (Estrutura inválida: result.download_url ausente)`;
                         }
 
                         throw new Error(errorMessage);
@@ -461,7 +459,8 @@
                     
                     // 3. Sucesso: Exibir o resultado
                     document.getElementById(loadingId).remove();
-                    addMusicMessage(musicRes.resultado);
+                    // Passa o objeto 'result' para a função de exibição
+                    addMusicMessage(musicRes.result);
 
                 } catch (err) {
                     // Captura e exibe o erro na tela
