@@ -15,9 +15,17 @@
             --chat-width: 48rem; 
             --text-primary: #ECECF1;
             --accent-green: #10a37f;
-            /* Cores de Fundo (Simulando WhatsApp) */
-            --msg-user-bg: #1A73E8; /* Azul claro para o Usuário */
-            --msg-ai-bg: #252525;  /* Cinza escuro para a IA */
+            
+            /* Cores Estilo iOS */
+            --msg-user-color: #ffffff; /* Texto branco na bolha azul */
+            --msg-ai-color: #ECECF1; /* Texto quase branco na bolha cinza */
+            
+            /* Bolha do Usuário (iOS Blue Gradient) */
+            --msg-user-bg-start: #007AFF; 
+            --msg-user-bg-end: #005EAA; 
+            
+            /* Bolha da IA (iOS Dark Gray) */
+            --msg-ai-bg: #252525; 
             --footer-height-buffer: 200px; 
         }
 
@@ -35,6 +43,12 @@
             line-height: 1.5;
         }
 
+        /* --- Scrollbar Minimalista --- */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
         /* --- Chat Container --- */
         main {
             flex: 1;
@@ -42,7 +56,6 @@
             scroll-behavior: smooth;
             padding-bottom: var(--footer-height-buffer); 
             padding-top: 20px;
-            /* Garante que o conteúdo centralizado preencha a largura */
             display: flex;
             flex-direction: column;
             align-items: center; 
@@ -51,40 +64,43 @@
         /* --- Linha da Mensagem (Container) --- */
         .message-row {
             width: 100%;
-            max-width: var(--chat-width); /* Limita a largura centralizada */
-            padding: 5px 10px; 
+            max-width: var(--chat-width);
+            padding: 4px 10px; /* Reduzido para aproximar mais as bolhas */
         }
 
-        /* --- Conteúdo da Mensagem (A "bolha" sem ponta) --- */
+        /* --- Conteúdo da Mensagem (A "bolha" iOS) --- */
         .message-content {
-            padding: 8px 12px;
-            border-radius: 8px;
-            max-width: 75%; /* Limita o tamanho da mensagem */
-            display: inline-block; /* Permite o alinhamento via text-align do pai */
-            word-wrap: break-word; /* Quebra texto longo */
+            padding: 10px 14px; /* Mais padding para o visual iOS */
+            border-radius: 18px; /* Cantos super arredondados */
+            max-width: 75%; 
+            display: inline-block; 
+            word-wrap: break-word; 
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1); /* Sombra sutil para profundidade */
+            font-weight: 400;
         }
         
-        /* --- CRISÁLIDA (IA) - ESQUERDA --- */
+        /* --- CRISÁLIDA (IA) - ESQUERDA (iOS Light Gray) --- */
         .message-row.ai {
             text-align: left;
         }
         .message-row.ai .message-content {
             background-color: var(--msg-ai-bg);
-            border-bottom-left-radius: 2px;
+            color: var(--msg-ai-color);
+            border-top-left-radius: 6px; /* Canto próximo achatado */
         }
         
-        /* --- USUÁRIO - DIREITA --- */
+        /* --- USUÁRIO - DIREITA (iOS Blue Gradient) --- */
         .message-row.user {
             text-align: right;
         }
         .message-row.user .message-content {
-            background-color: var(--msg-user-bg);
-            border-bottom-right-radius: 2px;
+            background: linear-gradient(135deg, var(--msg-user-bg-start), var(--msg-user-bg-end));
+            color: var(--msg-user-color);
+            border-top-right-radius: 6px; /* Canto próximo achatado */
         }
-
+        
         /* --- Empty State --- */
         .empty-state {
-            /* ... (Estilos mantidos) ... */
             flex: 1;
             display: flex;
             align-items: center;
@@ -100,14 +116,16 @@
         .empty-state p { font-size: 0.9rem; color: #666; }
 
         /* --- Formatação Markdown DENTRO do Conteúdo --- */
-        .message-content strong { font-weight: 600; color: #fff; }
+        /* Ajustando estilos para ficarem legíveis nas novas bolhas */
+        .message-content strong { font-weight: 600; color: inherit; }
+        
         .message-content code { 
             background: rgba(255, 255, 255, 0.1); 
             padding: 2px 4px; 
             border-radius: 4px; 
             font-family: monospace; 
             font-size: 0.9em; 
-            color: #E0E0E0;
+            color: inherit; /* Mantém a cor do texto da bolha */
             white-space: pre-wrap;
         }
         .message-content pre {
@@ -124,9 +142,8 @@
         .message-content p:last-child { margin-bottom: 0; }
         .message-content a { color: var(--accent-green); text-decoration: none; }
 
-        /* --- Input e Footer (Fixo embaixo) --- */
+        /* --- Input e Footer --- */
         footer {
-            /* ... (Estilos mantidos) ... */
             position: fixed;
             bottom: 0;
             left: 0;
@@ -144,8 +161,8 @@
             max-width: var(--chat-width);
             background: #18181a;
             border: 1px solid #333;
-            border-radius: 12px;
-            padding: 12px 16px;
+            border-radius: 20px; /* Mais arredondado */
+            padding: 10px 16px;
             display: flex;
             align-items: flex-end;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
@@ -174,15 +191,18 @@
             color: #444;
             cursor: pointer;
             padding: 4px;
-            border-radius: 4px;
+            border-radius: 50%; /* Botão circular */
             transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
         }
 
         button#send-btn.active {
-            background-color: var(--accent-green);
+            background-color: var(--msg-user-bg-start); /* Usa o azul iOS */
             color: white;
         }
         
@@ -200,7 +220,6 @@
             display: flex;
             gap: 4px;
             padding: 6px 0;
-            margin-left: 10px;
         }
         .dot {
             width: 8px;
@@ -220,9 +239,10 @@
         /* --- Ajustes para Mobile (Telas menores que 768px) --- */
         @media (max-width: 768px) {
             body { font-size: 15px; }
-            .message-row { padding: 5px 0; }
+            .message-row { padding: 4px 0; }
             footer { padding: 1rem 1rem; }
             :root { --footer-height-buffer: 180px; }
+            .input-box { border-radius: 25px; padding: 8px 14px; }
         }
     </style>
 </head>
@@ -239,7 +259,9 @@
         <div class="input-box">
             <textarea id="user-input" rows="1" placeholder="Enviar mensagem para Crisálida..."></textarea>
             <button id="send-btn" disabled>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 11L12 6L17 11M12 18V6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </button>
         </div>
         <div class="disclaimer">Crisálida by Redzin. Versão Black Pro. As IAs podem cometer erros.</div>
@@ -264,7 +286,7 @@
             const hasText = this.value.trim().length > 0;
             sendBtn.classList.toggle('active', hasText);
             sendBtn.disabled = !hasText;
-            sendBtn.style.color = hasText ? 'white' : '#444';
+            // A cor do botão inativo é cinza escuro, cor do botão ativo é definido no CSS.
         });
 
         // Enviar com Enter
@@ -325,7 +347,6 @@
             
             const contentHtml = isAi ? marked.parse(text) : text.replace(/\n/g, '<br>');
 
-            // Simplesmente envolve a mensagem no bloco de conteúdo
             div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
             
             chatContainer.appendChild(div);
@@ -338,7 +359,6 @@
             div.className = 'message-row ai';
             div.id = id;
             
-            // Simplesmente exibe o loading na esquerda
             const innerContent = `
                 <div class="message-content" style="display: flex; align-items: center; width: 60px;">
                     <div class="typing-dots">
