@@ -14,12 +14,11 @@
             --bg-color: #000000;
             --chat-width: 48rem; 
             --text-primary: #ECECF1;
-            --text-secondary: #9B9B9B;
             --accent-green: #10a37f;
             --bubble-user: #18181a; 
             --bubble-ai: #252525;
-            /* SOLUÇÃO 1: Espaço extra no final para evitar que o input cubra o texto */
-            --footer-height-buffer: 200px; 
+            /* SOLUÇÃO 1: Espaço extra GRANDE no final (250px) para evitar que o input cubra o texto */
+            --footer-height-buffer: 250px; 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -49,7 +48,6 @@
             display: flex;
             flex-direction: column;
             scroll-behavior: smooth;
-            /* Aplica o buffer */
             padding-bottom: var(--footer-height-buffer); 
             padding-top: 20px;
         }
@@ -170,7 +168,6 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            /* SOLUÇÃO 1: Garante que o gradiente e o input sejam grandes */
             background: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000000 30%); 
             padding: 1.5rem 1rem;
             display: flex;
@@ -263,8 +260,8 @@
             .message-content { gap: 1rem; }
             .avatar { width: 28px; height: 28px; font-size: 13px; }
             footer { padding: 1rem 1rem; }
-            /* Ajuste do buffer em telas menores */
-            :root { --footer-height-buffer: 170px; }
+            /* SOLUÇÃO 1: Ajuste do buffer em telas menores */
+            :root { --footer-height-buffer: 200px; }
         }
     </style>
 </head>
@@ -295,10 +292,9 @@
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // SOLUÇÃO 2: INSTRUÇÃO MÍNIMA para prevenir interferência nas respostas. 
-        // A formatação Markdown será solicitada separadamente na query.
-        const IDENTITY_CONTEXT = "IA: Crisálida. Criador: Redzin.";
-
+        // SOLUÇÃO 2: Informação de identidade para respostas hardcoded
+        const CRISALIDA_IDENTITY = "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**. Minha função é auxiliar você com suas perguntas e comandos.";
+        
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
             this.style.height = '24px'; 
@@ -327,18 +323,29 @@
             if(emptyState) emptyState.style.display = 'none';
             addMessage('user', text);
 
-            const originalHeight = userInput.style.height;
+            // UI Updates
             userInput.value = '';
             userInput.style.height = '24px';
             sendBtn.classList.remove('active');
             sendBtn.disabled = true;
             userInput.disabled = true; 
 
+            // SOLUÇÃO 2: Intercepta perguntas de identidade
+            const lowerText = text.toLowerCase();
+            if (lowerText.includes("quem é você") || lowerText.includes("quem te criou") || lowerText.includes("o que é crisalida")) {
+                setTimeout(() => {
+                    addMessage('ai', CRISALIDA_IDENTITY);
+                    userInput.disabled = false;
+                    userInput.focus();
+                }, 500); // Pequeno delay para simular o tempo de resposta
+                return;
+            }
+
             const loadingId = addLoading();
 
             try {
-                // Monta a query final com a instrução de contexto e a formatação Markdown
-                const finalInstruction = `(${IDENTITY_CONTEXT} Use formatação Markdown). Pergunta: ${text}`;
+                // SOLUÇÃO 2: Instrução minimalista para formatação e sem identidade.
+                const finalInstruction = `Responda usando formatação Markdown. Pergunta: ${text}`;
                 const query = encodeURIComponent(finalInstruction);
                 
                 const req = await fetch(API_URL + query);
@@ -388,7 +395,6 @@
             `;
             
             chatContainer.appendChild(div);
-            // Garante que o scroll vá para o final
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
@@ -418,7 +424,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Olá! Eu sou a **Crisálida**, uma IA criada por **Redzin**. Estou pronta para ajudá-lo. Pode começar sua conversa.");
+                addMessage('ai', "Olá! Eu sou a **Crisálida**, uma IA criada por **Redzin**. Como posso ajudar você hoje?");
             }
         });
     </script>
