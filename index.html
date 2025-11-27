@@ -12,11 +12,12 @@
         /* --- Configurações Globais e Variáveis --- */
         :root {
             --bg-color: #000000;
-            --chat-width: 48rem; /* 768px - Largura máxima de leitura em desktop */
+            --chat-width: 48rem; 
             --text-primary: #ECECF1;
             --text-secondary: #9B9B9B;
-            --user-bubble: #151515;
             --accent-green: #10a37f;
+            --bubble-user: #18181a; /* Mais escuro */
+            --bubble-ai: #252525; /* Mais claro para contraste com o user */
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -46,7 +47,6 @@
             display: flex;
             flex-direction: column;
             scroll-behavior: smooth;
-            /* Espaço para o footer não cobrir o último balão */
             padding-bottom: 150px; 
             padding-top: 20px;
         }
@@ -67,32 +67,66 @@
         .empty-state h1 { font-size: 2rem; font-weight: 600; color: #fff; margin-bottom: 10px; }
         .empty-state p { font-size: 0.9rem; color: #666; }
 
-        /* --- Linhas de Mensagem --- */
+        /* --- Linhas de Mensagem (Container) --- */
         .message-row {
             width: 100%;
-            padding: 1.5rem 0; /* Padding vertical um pouco menor para mobile */
+            padding: 8px 10px; /* Padding menor entre as bolhas */
             display: flex;
             justify-content: center;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            /* Remove a linha divisória */
+            border-bottom: none; 
         }
 
-        .message-row.user { background-color: var(--bg-color); }
-        .message-row.ai { background-color: #050505; }
-
+        /* --- Bolhas de Mensagem --- */
         .message-content {
+            display: flex;
             width: 100%;
             max-width: var(--chat-width);
-            display: flex;
-            gap: 1.5rem;
-            /* Garante padding horizontal em mobile */
-            padding: 0 1rem; 
+            padding: 0 1rem;
+            /* Centraliza o conteúdo (bolha) dentro da linha do chat */
+            justify-content: flex-start; 
         }
 
-        /* --- Avatares --- */
+        /* Estilos da Bolha */
+        .message-bubble {
+            max-width: 80%; /* Limita a largura da bolha */
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-weight: 300;
+            line-height: 1.5;
+            position: relative;
+        }
+        
+        /* Bolha do Usuário (Flutua para a Direita) */
+        .message-row.user .message-content {
+            justify-content: flex-end; 
+        }
+        .message-row.user .message-bubble {
+            background-color: var(--bubble-user);
+            border-bottom-right-radius: 2px; /* Ponta de WhatsApp/Telegram */
+        }
+        
+        /* Bolha da IA (Flutua para a Esquerda) */
+        .message-row.ai .message-bubble {
+            background-color: var(--bubble-ai);
+            border-bottom-left-radius: 2px;
+        }
+        
+        /* --- Avatares (Mantidos, mas fora da bolha) --- */
+        .avatar-container {
+            display: flex;
+            align-items: flex-end; /* Alinha o avatar com o texto de baixo */
+            width: 40px;
+            flex-shrink: 0;
+            padding-bottom: 5px; /* Alinhamento visual */
+        }
+        .message-row.user .avatar-container { order: 2; justify-content: flex-end; }
+        .message-row.ai .avatar-container { order: 1; }
+        
         .avatar {
             width: 30px;
             height: 30px;
-            border-radius: 4px;
+            border-radius: 50%; /* Agora circular */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -104,17 +138,10 @@
         .avatar.user-icon { background: #5436DA; color: #fff; }
         .avatar.ai-icon { background: #ECECF1; color: #000; }
 
-        /* --- Texto da Mensagem (Markdown) --- */
-        .prose {
-            flex: 1;
-            min-width: 0;
-            font-weight: 300;
-        }
-        
-        /* Formatação de Markdown (Lista, Negrito, Código) */
-        .prose strong { font-weight: 600; color: #fff; }
-        .prose code { 
-            background: #252525; 
+        /* --- Formatação Markdown DENTRO da Bolha --- */
+        .message-bubble strong { font-weight: 600; color: #fff; }
+        .message-bubble code { 
+            background: rgba(255, 255, 255, 0.1); 
             padding: 2px 4px; 
             border-radius: 4px; 
             font-family: monospace; 
@@ -122,27 +149,26 @@
             color: #E0E0E0;
             white-space: pre-wrap;
         }
-        .prose pre {
-            background: #0d0d0d;
+        .message-bubble pre {
+            background: #000000;
             padding: 15px;
             border-radius: 6px;
             overflow-x: auto;
             margin: 10px 0;
             border: 1px solid #333;
         }
-        .prose pre code { background: transparent; padding: 0; color: #fff; }
-        .prose ul, .prose ol { margin-left: 20px; margin-bottom: 10px; }
-        .prose p { margin-bottom: 10px; }
-        .prose p:last-child { margin-bottom: 0; }
-        .prose a { color: var(--accent-green); text-decoration: none; }
+        .message-bubble pre code { background: transparent; padding: 0; color: #fff; }
+        .message-bubble ul, .message-bubble ol { margin-left: 20px; margin-bottom: 10px; }
+        .message-bubble p { margin-bottom: 10px; }
+        .message-bubble p:last-child { margin-bottom: 0; }
+        .message-bubble a { color: var(--accent-green); text-decoration: none; }
 
-        /* --- Área de Input (Fixo embaixo) --- */
+        /* --- Input e Footer (Mantidos) --- */
         footer {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            /* Camada de sombra para o chat deslizar por baixo */
             background: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000000 40%);
             padding: 1.5rem 1rem;
             display: flex;
@@ -161,11 +187,6 @@
             display: flex;
             align-items: flex-end;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            transition: border 0.2s;
-        }
-
-        .input-box:focus-within {
-            border-color: #666;
         }
 
         textarea {
@@ -175,7 +196,7 @@
             color: #fff;
             font-size: 1rem;
             resize: none;
-            max-height: 150px; /* Limite menor em mobile */
+            max-height: 150px;
             height: 24px;
             padding: 0;
             margin-right: 10px;
@@ -184,9 +205,7 @@
             overflow-y: auto;
         }
 
-        textarea::-webkit-scrollbar { display: none; } /* Esconde scrollbar do textarea */
-        textarea::placeholder { color: #666; }
-
+        textarea::-webkit-scrollbar { display: none; }
         button#send-btn {
             background: transparent;
             border: none;
@@ -234,15 +253,6 @@
             0%, 80%, 100% { transform: scale(0); }
             40% { transform: scale(1); }
         }
-
-        /* --- Ajustes para Mobile (Telas menores que 768px) --- */
-        @media (max-width: 768px) {
-            body { font-size: 15px; }
-            .message-row { padding: 1rem 0; }
-            .message-content { gap: 1rem; }
-            .avatar { width: 28px; height: 28px; font-size: 13px; }
-            footer { padding: 1rem 1rem; }
-        }
     </style>
 </head>
 <body>
@@ -275,10 +285,9 @@
 
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
-            this.style.height = '24px'; // Resetar altura antes de calcular
+            this.style.height = '24px'; 
             this.style.height = (this.scrollHeight) + 'px';
             
-            // Ativa/Desativa botão (Botão só fica verde se tiver texto)
             const hasText = this.value.trim().length > 0;
             sendBtn.classList.toggle('active', hasText);
             sendBtn.disabled = !hasText;
@@ -299,11 +308,9 @@
             const text = userInput.value.trim();
             if (!text) return;
 
-            // 1. Remove empty state e adiciona mensagem do usuário
             if(emptyState) emptyState.style.display = 'none';
             addMessage('user', text);
 
-            // 2. Limpa o input e desabilita
             const originalHeight = userInput.style.height;
             userInput.value = '';
             userInput.style.height = '24px';
@@ -311,7 +318,6 @@
             sendBtn.disabled = true;
             userInput.disabled = true; 
 
-            // 3. Adiciona indicador de carregamento
             const loadingId = addLoading();
 
             try {
@@ -319,12 +325,10 @@
                 const req = await fetch(API_URL + query);
                 const res = await req.json();
 
-                // 4. Remove loading
                 document.getElementById(loadingId).remove();
 
                 const answer = res.data || res.answer || res.response || "Não foi possível obter resposta.";
                 
-                // 5. Adiciona resposta da IA
                 addMessage('ai', answer);
 
             } catch (err) {
@@ -332,10 +336,8 @@
                 addMessage('ai', "**Erro:** Falha na conexão com Crisálida. Verifique a URL da API.");
                 console.error(err);
             } finally {
-                // 6. Restaura input
                 userInput.disabled = false;
                 userInput.focus();
-                // O botão permanece desabilitado e cinza até que o usuário comece a digitar novamente
             }
         }
 
@@ -350,17 +352,23 @@
 
             div.innerHTML = `
                 <div class="message-content">
-                    <div class="avatar ${isAi ? 'ai-icon' : 'user-icon'}">
-                        ${isAi ? 'C' : 'R'}
-                    </div>
-                    <div class="prose">
+                    ${isAi ? 
+                        `<div class="avatar-container"><div class="avatar ai-icon">C</div></div>` : 
+                        `<div class="avatar-container" style="width: 0;"></div>` /* Espaço vazio para alinhar */
+                    }
+                    
+                    <div class="message-bubble">
                         ${contentHtml}
                     </div>
+
+                    ${!isAi ? 
+                        `<div class="avatar-container"><div class="avatar user-icon">R</div></div>` :
+                        `<div class="avatar-container" style="width: 0;"></div>`
+                    }
                 </div>
             `;
             
             chatContainer.appendChild(div);
-            // Faz a rolagem suave para o último elemento
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
@@ -371,11 +379,13 @@
             div.id = id;
             div.innerHTML = `
                 <div class="message-content">
-                    <div class="avatar ai-icon">C</div>
-                    <div class="typing-dots">
-                        <div class="dot"></div>
-                        <div class="dot"></div>
-                        <div class="dot"></div>
+                    <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
+                    <div class="message-bubble" style="padding: 12px 20px;">
+                        <div class="typing-dots">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
                     </div>
                 </div>
             `;
