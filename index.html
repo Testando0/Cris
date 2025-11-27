@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crisálida AI</title>
+    <style>
+        /* --- Reset e Estilos Básicos --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #343541; /* Fundo principal escuro */
+            color: #ececf1;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* --- Container Principal --- */
+        .chat-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+
+        /* --- Cabeçalho --- */
+        header {
+            text-align: center;
+            padding: 15px;
+            border-bottom: 1px solid #4d4d4f;
+            background-color: #343541;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #10a37f; /* Verde acentuado estilo IA */
+        }
+
+        /* --- Área de Mensagens --- */
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 120px; /* Espaço para o input não cobrir */
+            scroll-behavior: smooth;
+        }
+
+        /* Estilização da barra de rolagem */
+        #chat-box::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chat-box::-webkit-scrollbar-thumb {
+            background-color: #565869;
+            border-radius: 4px;
+        }
+
+        /* --- Balões de Mensagem --- */
+        .message-row {
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Mensagem da IA (Crisálida) */
+        .ai-message {
+            background-color: #444654; /* Cinza levemente mais claro */
+        }
+
+        /* Mensagem do Usuário */
+        .user-message {
+            background-color: #343541;
+        }
+
+        .message-content {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 750px;
+            line-height: 1.6;
+        }
+
+        /* Ícones/Avatares */
+        .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .user-avatar {
+            background-color: #5436da; /* Roxo para o usuário */
+            color: white;
+        }
+
+        .ai-avatar {
+            background-color: #10a37f; /* Verde para IA */
+            color: white;
+        }
+
+        /* --- Área de Input --- */
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 900px;
+            background-color: #343541; /* Gradiente ou cor sólida para cobrir */
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(52,53,65,0) 0%, #343541 20%);
+        }
+
+        .input-container {
+            display: flex;
+            background-color: #40414f;
+            border-radius: 12px;
+            padding: 10px 15px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            resize: none;
+            height: 24px;
+            max-height: 200px;
+            font-size: 1rem;
+            outline: none;
+            overflow-y: hidden;
+        }
+
+        button {
+            background: transparent;
+            border: none;
+            color: #ececf1;
+            cursor: pointer;
+            padding-left: 10px;
+            transition: color 0.2s;
+        }
+
+        button:hover {
+            color: #10a37f;
+        }
+
+        /* Animação de carregamento */
+        .typing-indicator::after {
+            content: '...';
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <header>
+            <h1>Crisálida</h1>
+        </header>
+
+        <div id="chat-box">
+            <div class="message-row ai-message">
+                <div class="message-content">
+                    <div class="avatar ai-avatar">C</div>
+                    <div class="text">Olá. Eu sou a Crisálida. Em que posso ajudar você hoje?</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-container">
+                <textarea id="user-input" placeholder="Envie uma mensagem..." rows="1" oninput="autoResize(this)"></textarea>
+                <button onclick="sendMessage()">
+                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="1.2em" width="1.2em" xmlns="http://www.w3.org/2000/svg"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+            <p style="text-align: center; font-size: 11px; color: #8e8ea0; margin-top: 10px;">Crisálida pode produzir informações imprecisas.</p>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+
+        // URL da API fornecida
+        const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
+
+        // Contexto para forçar a identidade
+        // Isso é enviado junto com a mensagem para a API saber quem ela é
+        const SYSTEM_PROMPT = "Aja como uma IA chamada Crisálida. Seja prestativa, direta e fale em português. Nunca mencione que você é o ChatGPT. Responda ao seguinte: ";
+
+        // Ajusta altura do textarea automaticamente
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        // Detectar tecla Enter
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // 1. Adicionar mensagem do usuário na tela
+            addMessageToScreen('user', text);
+            userInput.value = '';
+            userInput.style.height = '24px'; // Resetar altura
+
+            // 2. Mostrar indicador de digitando
+            const loadingId = addLoadingIndicator();
+
+            try {
+                // 3. Preparar a URL com o Prompt de Sistema + Texto do Usuário
+                const finalQuery = encodeURIComponent(SYSTEM_PROMPT + text);
+                
+                // 4. Chamada à API
+                const response = await fetch(API_URL + finalQuery);
+                const data = await response.json();
+
+                // 5. Remover loading e mostrar resposta
+                removeLoadingIndicator(loadingId);
+                
+                // A API delirius geralmente retorna a resposta na chave 'data' ou diretamente no texto.
+                // Ajuste aqui dependendo do formato exato do JSON de retorno.
+                // Assumindo estrutura comum: { data: "resposta..." }
+                const aiResponse = data.data || data.answer || data.response || "Desculpe, não consegui processar a resposta.";
+                
+                addMessageToScreen('ai', aiResponse);
+
+            } catch (error) {
+                removeLoadingIndicator(loadingId);
+                addMessageToScreen('ai', "Erro ao conectar com a Crisálida. Tente novamente.");
+                console.error(error);
+            }
+        }
+
+        function addMessageToScreen(sender, text) {
+            const div = document.createElement('div');
+            const isAi = sender === 'ai';
+            
+            div.className = `message-row ${isAi ? 'ai-message' : 'user-message'}`;
+            
+            div.innerHTML = `
+                <div class="message-content">
+                    <div class="avatar ${isAi ? 'ai-avatar' : 'user-avatar'}">
+                        ${isAi ? 'C' : 'U'}
+                    </div>
+                    <div class="text">${formatText(text)}</div>
+                </div>
+            `;
+            
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function addLoadingIndicator() {
+            const id = 'loading-' + Date.now();
+            const div = document.createElement('div');
+            div.className = `message-row ai-message`;
+            div.id = id;
+            div.innerHTML = `
+                <div class="message-content">
+                    <div class="avatar ai-avatar">C</div>
+                    <div class="text typing-indicator">Crisálida está pensando</div>
+                </div>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return id;
+        }
+
+        function removeLoadingIndicator(id) {
+            const element = document.getElementById(id);
+            if (element) element.remove();
+        }
+
+        // Função simples para converter quebras de linha em <br>
+        function formatText(text) {
+            return text.replace(/\n/g, '<br>');
+        }
+    </script>
+</body>
+</html>
