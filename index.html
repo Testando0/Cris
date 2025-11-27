@@ -3,171 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisálida AI</title>
+    <title>Crisálida AI - Black Edition</title>
     <style>
-        /* --- Reset e Estilos Básicos --- */
+        /* --- Importando Fonte Inter para visual mais limpo --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+        /* --- Reset e Variáveis --- */
+        :root {
+            --bg-color: #000000;
+            --ai-bg: #000000;
+            --user-bg: #111111; /* Diferenciação sutil */
+            --border-color: #2e2e2e;
+            --text-primary: #ededed;
+            --text-secondary: #9b9b9b;
+            --accent-color: #ffffff; /* Monocromático profissional */
+            --input-bg: #111111;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         body {
-            background-color: #343541; /* Fundo principal escuro */
-            color: #ececf1;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             display: flex;
             justify-content: center;
             height: 100vh;
+            overflow: hidden;
         }
 
         /* --- Container Principal --- */
         .chat-container {
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px; /* Leitura mais larga */
             display: flex;
             flex-direction: column;
             height: 100%;
             position: relative;
+            background-color: var(--bg-color);
         }
 
-        /* --- Cabeçalho --- */
+        /* --- Cabeçalho Minimalista --- */
         header {
-            text-align: center;
-            padding: 15px;
-            border-bottom: 1px solid #4d4d4f;
-            background-color: #343541;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            width: 100%;
+            z-index: 10;
         }
 
         header h1 {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 600;
-            letter-spacing: 1px;
-            color: #10a37f; /* Verde acentuado estilo IA */
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+            text-transform: uppercase;
         }
 
-        /* --- Área de Mensagens --- */
+        /* --- Área de Chat --- */
         #chat-box {
             flex: 1;
             overflow-y: auto;
-            padding-bottom: 120px; /* Espaço para o input não cobrir */
+            padding-top: 70px; /* Espaço do header */
+            padding-bottom: 140px; /* Espaço do input */
             scroll-behavior: smooth;
         }
 
-        /* Estilização da barra de rolagem */
+        /* Scrollbar customizada invisível/discreta */
         #chat-box::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
         #chat-box::-webkit-scrollbar-thumb {
-            background-color: #565869;
-            border-radius: 4px;
+            background-color: #333;
+            border-radius: 10px;
         }
 
-        /* --- Balões de Mensagem --- */
+        /* --- Mensagens --- */
         .message-row {
-            padding: 24px;
+            padding: 30px 20px;
             display: flex;
             justify-content: center;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
+            width: 100%;
+            border-bottom: 1px solid var(--border-color); /* Linha divisória fina */
         }
 
-        /* Mensagem da IA (Crisálida) */
         .ai-message {
-            background-color: #444654; /* Cinza levemente mais claro */
+            background-color: var(--ai-bg);
         }
 
-        /* Mensagem do Usuário */
         .user-message {
-            background-color: #343541;
+            background-color: var(--user-bg);
         }
 
         .message-content {
             display: flex;
-            gap: 20px;
+            gap: 25px;
             width: 100%;
-            max-width: 750px;
-            line-height: 1.6;
+            max-width: 800px;
+            font-size: 0.95rem;
+            line-height: 1.7;
         }
 
-        /* Ícones/Avatares */
+        /* --- Avatares --- */
         .avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            border-radius: 4px; /* Quadrado arredondado mais sério */
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
+            font-weight: 600;
             font-size: 14px;
             flex-shrink: 0;
         }
 
         .user-avatar {
-            background-color: #5436da; /* Roxo para o usuário */
-            color: white;
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
         }
 
         .ai-avatar {
-            background-color: #10a37f; /* Verde para IA */
-            color: white;
+            background-color: #fff; /* Contraste máximo: IA branca no fundo preto */
+            color: #000;
         }
 
-        /* --- Área de Input --- */
+        /* --- Input Area --- */
         .input-area {
             position: fixed;
             bottom: 0;
             width: 100%;
-            max-width: 900px;
-            background-color: #343541; /* Gradiente ou cor sólida para cobrir */
-            padding: 20px;
-            background: linear-gradient(180deg, rgba(52,53,65,0) 0%, #343541 20%);
+            max-width: 1000px;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000000 30%);
+            padding: 30px 20px;
+            z-index: 20;
         }
 
         .input-container {
             display: flex;
-            background-color: #40414f;
-            border-radius: 12px;
-            padding: 10px 15px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.1);
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-container:focus-within {
+            border-color: #666; /* Realce ao digitar */
         }
 
         textarea {
             flex: 1;
             background: transparent;
             border: none;
-            color: white;
+            color: var(--text-primary);
             resize: none;
             height: 24px;
             max-height: 200px;
             font-size: 1rem;
             outline: none;
-            overflow-y: hidden;
+        }
+
+        textarea::placeholder {
+            color: #555;
         }
 
         button {
             background: transparent;
             border: none;
-            color: #ececf1;
+            color: #555;
             cursor: pointer;
-            padding-left: 10px;
-            transition: color 0.2s;
+            padding-left: 15px;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
         }
 
         button:hover {
-            color: #10a37f;
+            color: #fff;
         }
 
-        /* Animação de carregamento */
-        .typing-indicator::after {
-            content: '...';
-            animation: blink 1.5s infinite;
+        /* --- Rodapé disclaimer --- */
+        .disclaimer {
+            text-align: center;
+            font-size: 10px;
+            color: #444;
+            margin-top: 12px;
+            font-family: monospace;
+        }
+
+        /* --- Efeito de Digitação --- */
+        .typing::after {
+            content: '▋';
+            display: inline-block;
+            vertical-align: bottom;
+            animation: blink 1s infinite;
         }
 
         @keyframes blink {
-            0% { opacity: 0; }
-            50% { opacity: 1; }
-            100% { opacity: 0; }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
     </style>
 </head>
@@ -182,40 +227,40 @@
             <div class="message-row ai-message">
                 <div class="message-content">
                     <div class="avatar ai-avatar">C</div>
-                    <div class="text">Olá. Eu sou a Crisálida. Em que posso ajudar você hoje?</div>
+                    <div class="text">Sistema iniciado. Sou Crisálida. Aguardando instruções.</div>
                 </div>
             </div>
         </div>
 
         <div class="input-area">
             <div class="input-container">
-                <textarea id="user-input" placeholder="Envie uma mensagem..." rows="1" oninput="autoResize(this)"></textarea>
-                <button onclick="sendMessage()">
-                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="1.2em" width="1.2em" xmlns="http://www.w3.org/2000/svg"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                <textarea id="user-input" placeholder="Digite sua mensagem..." rows="1" oninput="autoResize(this)"></textarea>
+                <button onclick="sendMessage()" id="send-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </button>
             </div>
-            <p style="text-align: center; font-size: 11px; color: #8e8ea0; margin-top: 10px;">Crisálida pode produzir informações imprecisas.</p>
+            <p class="disclaimer">Crisálida by Redzin. Versão Beta.</p>
         </div>
     </div>
 
     <script>
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
 
-        // URL da API fornecida
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
+        
+        // IDENTIDADE CONFIGURADA AQUI
+        const SYSTEM_PROMPT = "Você é a Crisálida, uma inteligência artificial sofisticada. Seu criador é o Redzin. Você deve responder sempre em português, com tom profissional, sério e direto. Nunca se identifique como ChatGPT ou OpenAI. Se perguntarem quem te criou, responda apenas 'Redzin'. Pergunta do usuário: ";
 
-        // Contexto para forçar a identidade
-        // Isso é enviado junto com a mensagem para a API saber quem ela é
-        const SYSTEM_PROMPT = "Aja como uma IA chamada Crisálida. Seja prestativa, direta e fale em português. Nunca mencione que você é o ChatGPT. Responda ao seguinte: ";
-
-        // Ajusta altura do textarea automaticamente
         function autoResize(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = textarea.scrollHeight + 'px';
         }
 
-        // Detectar tecla Enter
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -227,36 +272,40 @@
             const text = userInput.value.trim();
             if (!text) return;
 
-            // 1. Adicionar mensagem do usuário na tela
+            // Bloquear input enquanto envia
+            userInput.disabled = true;
+            sendBtn.style.opacity = "0.5";
+            
+            // Adicionar msg usuário
             addMessageToScreen('user', text);
             userInput.value = '';
-            userInput.style.height = '24px'; // Resetar altura
+            userInput.style.height = '24px';
 
-            // 2. Mostrar indicador de digitando
+            // Loading
             const loadingId = addLoadingIndicator();
 
             try {
-                // 3. Preparar a URL com o Prompt de Sistema + Texto do Usuário
+                // Montagem da query
                 const finalQuery = encodeURIComponent(SYSTEM_PROMPT + text);
                 
-                // 4. Chamada à API
                 const response = await fetch(API_URL + finalQuery);
                 const data = await response.json();
 
-                // 5. Remover loading e mostrar resposta
                 removeLoadingIndicator(loadingId);
                 
-                // A API delirius geralmente retorna a resposta na chave 'data' ou diretamente no texto.
-                // Ajuste aqui dependendo do formato exato do JSON de retorno.
-                // Assumindo estrutura comum: { data: "resposta..." }
-                const aiResponse = data.data || data.answer || data.response || "Desculpe, não consegui processar a resposta.";
+                // Tratamento de resposta da API Delirius
+                const aiResponse = data.data || data.answer || data.response || "Sem dados de resposta.";
                 
                 addMessageToScreen('ai', aiResponse);
 
             } catch (error) {
                 removeLoadingIndicator(loadingId);
-                addMessageToScreen('ai', "Erro ao conectar com a Crisálida. Tente novamente.");
+                addMessageToScreen('ai', "Erro de conexão. Protocolo interrompido.");
                 console.error(error);
+            } finally {
+                userInput.disabled = false;
+                userInput.focus();
+                sendBtn.style.opacity = "1";
             }
         }
 
@@ -266,16 +315,21 @@
             
             div.className = `message-row ${isAi ? 'ai-message' : 'user-message'}`;
             
+            // Se for IA, processa formatação simples (quebras de linha)
+            // Se for usuário, texto puro para segurança
+            const formattedText = isAi ? formatText(text) : text;
+
             div.innerHTML = `
                 <div class="message-content">
                     <div class="avatar ${isAi ? 'ai-avatar' : 'user-avatar'}">
-                        ${isAi ? 'C' : 'U'}
-                    </div>
-                    <div class="text">${formatText(text)}</div>
+                        ${isAi ? 'C' : 'R'} </div>
+                    <div class="text">${formattedText}</div>
                 </div>
             `;
             
             chatBox.appendChild(div);
+            // Rolagem suave até o fim
+            window.scrollTo(0, document.body.scrollHeight); 
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
@@ -287,7 +341,7 @@
             div.innerHTML = `
                 <div class="message-content">
                     <div class="avatar ai-avatar">C</div>
-                    <div class="text typing-indicator">Crisálida está pensando</div>
+                    <div class="text typing">Processando</div>
                 </div>
             `;
             chatBox.appendChild(div);
@@ -300,8 +354,8 @@
             if (element) element.remove();
         }
 
-        // Função simples para converter quebras de linha em <br>
         function formatText(text) {
+            // Converte quebras de linha e remove aspas extras se vierem no JSON
             return text.replace(/\n/g, '<br>');
         }
     </script>
