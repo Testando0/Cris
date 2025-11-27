@@ -9,16 +9,16 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
-        /* --- Configurações Globais e Variáveis --- */
+        /* --- Configurações Globais --- */
         :root {
             --bg-color: #000000;
             --chat-width: 48rem; 
             --text-primary: #ECECF1;
             --accent-green: #10a37f;
-            /* Cores de Fundo Escuro */
-            --bubble-user: #18181a; 
-            --bubble-ai: #252525;
-            --footer-height-buffer: 280px; 
+            /* Cores de Fundo (Simulando WhatsApp) */
+            --msg-user-bg: #1A73E8; /* Azul claro para o Usuário */
+            --msg-ai-bg: #252525;  /* Cinza escuro para a IA */
+            --footer-height-buffer: 200px; 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -32,28 +32,59 @@
             flex-direction: column;
             overflow: hidden;
             font-size: 16px;
-            line-height: 1.6;
+            line-height: 1.5;
         }
 
-        /* --- Scrollbar Minimalista --- */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
-
-        /* --- Área Principal de Chat (Adaptável) --- */
+        /* --- Chat Container --- */
         main {
             flex: 1;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
             scroll-behavior: smooth;
             padding-bottom: var(--footer-height-buffer); 
             padding-top: 20px;
+            /* Garante que o conteúdo centralizado preencha a largura */
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
         }
 
-        /* --- Empty State (Início) --- */
+        /* --- Linha da Mensagem (Container) --- */
+        .message-row {
+            width: 100%;
+            max-width: var(--chat-width); /* Limita a largura centralizada */
+            padding: 5px 10px; 
+        }
+
+        /* --- Conteúdo da Mensagem (A "bolha" sem ponta) --- */
+        .message-content {
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 75%; /* Limita o tamanho da mensagem */
+            display: inline-block; /* Permite o alinhamento via text-align do pai */
+            word-wrap: break-word; /* Quebra texto longo */
+        }
+        
+        /* --- CRISÁLIDA (IA) - ESQUERDA --- */
+        .message-row.ai {
+            text-align: left;
+        }
+        .message-row.ai .message-content {
+            background-color: var(--msg-ai-bg);
+            border-bottom-left-radius: 2px;
+        }
+        
+        /* --- USUÁRIO - DIREITA --- */
+        .message-row.user {
+            text-align: right;
+        }
+        .message-row.user .message-content {
+            background-color: var(--msg-user-bg);
+            border-bottom-right-radius: 2px;
+        }
+
+        /* --- Empty State --- */
         .empty-state {
+            /* ... (Estilos mantidos) ... */
             flex: 1;
             display: flex;
             align-items: center;
@@ -68,84 +99,9 @@
         .empty-state h1 { font-size: 2rem; font-weight: 600; color: #fff; margin-bottom: 10px; }
         .empty-state p { font-size: 0.9rem; color: #666; }
 
-        /* --- Linhas de Mensagem (Container) --- */
-        .message-row {
-            width: 100%;
-            padding: 8px 10px; 
-            display: flex;
-            justify-content: center;
-        }
-
-        /* --- Bolhas e Avatares (O container flex que define a linha) --- */
-        .message-content {
-            display: flex;
-            width: 100%;
-            max-width: var(--chat-width);
-            padding: 0 1rem;
-            align-items: flex-end; /* Alinha avatar e bolha na parte inferior */
-        }
-
-        .message-bubble {
-            max-width: 80%; 
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-weight: 300;
-            line-height: 1.5;
-            flex-shrink: 1; /* Permite que a bolha diminua */
-        }
-        
-        /* --- CRISÁLIDA (ESQUERDA) --- */
-        .message-row.ai .message-content {
-            justify-content: flex-start; /* Alinha o bloco todo à esquerda */
-            flex-direction: row; /* Ordem: Avatar -> Bolha (padrão) */
-        }
-        .message-row.ai .message-bubble {
-            background-color: var(--bubble-ai);
-            border-bottom-left-radius: 2px; 
-        }
-        
-        /* --- USUÁRIO (DIREITA) --- */
-        .message-row.user .message-content {
-            justify-content: flex-end; /* Alinha o bloco todo à direita */
-            flex-direction: row-reverse; /* Ordem: Bolha -> Avatar */
-        }
-        .message-row.user .message-bubble {
-            background-color: var(--bubble-user);
-            border-bottom-right-radius: 2px; 
-        }
-        
-        /* --- Avatares --- */
-        .avatar-container {
-            width: 30px; 
-            height: 30px;
-            flex-shrink: 0;
-            /* Margens para separar avatar da bolha */
-            margin-left: 10px; /* Margem à esquerda (para bolha do usuário) */
-            margin-right: 10px; /* Margem à direita (para bolha da IA) */
-        }
-
-        /* Removendo a margem do lado que não deve ter espaçamento */
-        .message-row.ai .avatar-container { margin-left: 0; }
-        .message-row.user .avatar-container { margin-right: 0; }
-        
-        .avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .avatar.user-icon { background: #5436DA; color: #fff; }
-        .avatar.ai-icon { background: #ECECF1; color: #000; }
-
-        /* --- Formatação Markdown DENTRO da Bolha --- */
-        .message-bubble strong { font-weight: 600; color: #fff; }
-        .message-bubble code { 
+        /* --- Formatação Markdown DENTRO do Conteúdo --- */
+        .message-content strong { font-weight: 600; color: #fff; }
+        .message-content code { 
             background: rgba(255, 255, 255, 0.1); 
             padding: 2px 4px; 
             border-radius: 4px; 
@@ -154,7 +110,7 @@
             color: #E0E0E0;
             white-space: pre-wrap;
         }
-        .message-bubble pre {
+        .message-content pre {
             background: #000000;
             padding: 15px;
             border-radius: 6px;
@@ -162,14 +118,15 @@
             margin: 10px 0;
             border: 1px solid #333;
         }
-        .message-bubble pre code { background: transparent; padding: 0; color: #fff; }
-        .message-bubble ul, .message-bubble ol { margin-left: 20px; margin-bottom: 10px; }
-        .message-bubble p { margin-bottom: 10px; }
-        .message-bubble p:last-child { margin-bottom: 0; }
-        .message-bubble a { color: var(--accent-green); text-decoration: none; }
+        .message-content pre code { background: transparent; padding: 0; color: #fff; }
+        .message-content ul, .message-content ol { margin-left: 20px; margin-bottom: 10px; }
+        .message-content p { margin-bottom: 10px; }
+        .message-content p:last-child { margin-bottom: 0; }
+        .message-content a { color: var(--accent-green); text-decoration: none; }
 
         /* --- Input e Footer (Fixo embaixo) --- */
         footer {
+            /* ... (Estilos mantidos) ... */
             position: fixed;
             bottom: 0;
             left: 0;
@@ -243,6 +200,7 @@
             display: flex;
             gap: 4px;
             padding: 6px 0;
+            margin-left: 10px;
         }
         .dot {
             width: 8px;
@@ -262,11 +220,9 @@
         /* --- Ajustes para Mobile (Telas menores que 768px) --- */
         @media (max-width: 768px) {
             body { font-size: 15px; }
-            .message-row { padding: 8px 0; }
-            .message-content { gap: 0.5rem; }
-            .avatar { width: 28px; height: 28px; font-size: 13px; }
+            .message-row { padding: 5px 0; }
             footer { padding: 1rem 1rem; }
-            :root { --footer-height-buffer: 220px; }
+            :root { --footer-height-buffer: 180px; }
         }
     </style>
 </head>
@@ -364,30 +320,13 @@
         
         function addMessage(sender, text) {
             const div = document.createElement('div');
+            div.className = `message-row ${sender}`;
             const isAi = sender === 'ai';
             
-            div.className = `message-row ${sender}`;
             const contentHtml = isAi ? marked.parse(text) : text.replace(/\n/g, '<br>');
 
-            let innerContent = '';
-            
-            if (isAi) {
-                // Crisálida (Lado ESQUERDO): [Avatar] [Bubble]
-                // Ordem: Avatar -> Bolha no HTML (CSS usa flex-direction: row)
-                innerContent = `
-                    <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
-                    <div class="message-bubble">${contentHtml}</div>
-                `;
-            } else {
-                // Usuário (Lado DIREITO): [Bubble] [Avatar]
-                // Ordem: Bolha -> Avatar no HTML (CSS usa flex-direction: row-reverse)
-                innerContent = `
-                    <div class="message-bubble">${contentHtml}</div>
-                    <div class="avatar-container"><div class="avatar user-icon">R</div></div>
-                `;
-            }
-
-            div.innerHTML = `<div class="message-content">${innerContent}</div>`;
+            // Simplesmente envolve a mensagem no bloco de conteúdo
+            div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
             
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -399,10 +338,9 @@
             div.className = 'message-row ai';
             div.id = id;
             
-            // Loading (Lado ESQUERDO): [Avatar] [Dots]
+            // Simplesmente exibe o loading na esquerda
             const innerContent = `
-                <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
-                <div class="message-bubble" style="padding: 12px 20px;">
+                <div class="message-content" style="display: flex; align-items: center; width: 60px;">
                     <div class="typing-dots">
                         <div class="dot"></div>
                         <div class="dot"></div>
@@ -411,7 +349,7 @@
                 </div>
             `;
             
-            div.innerHTML = `<div class="message-content">${innerContent}</div>`;
+            div.innerHTML = innerContent;
             
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
