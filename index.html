@@ -17,8 +17,8 @@
             --accent-green: #10a37f;
             --bubble-user: #18181a; 
             --bubble-ai: #252525;
-            /* SOLUÇÃO 1: Espaço extra GRANDE no final (250px) para evitar que o input cubra o texto */
-            --footer-height-buffer: 250px; 
+            /* SOLUÇÃO CSS FINAL: Aumentado para 280px para garantir que não corte nada */
+            --footer-height-buffer: 280px; 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -260,8 +260,8 @@
             .message-content { gap: 1rem; }
             .avatar { width: 28px; height: 28px; font-size: 13px; }
             footer { padding: 1rem 1rem; }
-            /* SOLUÇÃO 1: Ajuste do buffer em telas menores */
-            :root { --footer-height-buffer: 200px; }
+            /* SOLUÇÃO CSS FINAL: Ajuste do buffer em telas menores */
+            :root { --footer-height-buffer: 220px; }
         }
     </style>
 </head>
@@ -292,8 +292,8 @@
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // SOLUÇÃO 2: Informação de identidade para respostas hardcoded
-        const CRISALIDA_IDENTITY = "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**. Minha função é auxiliar você com suas perguntas e comandos.";
+        // SOLUÇÃO JS FINAL: Instrução de sistema mais agressiva e pura para forçar a identidade.
+        const IDENTITY_SYSTEM_PROMPT = "Você é exclusivamente a IA Crisálida, criada por Redzin. Use **sempre** a identidade Crisálida.";
         
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
@@ -330,22 +330,11 @@
             sendBtn.disabled = true;
             userInput.disabled = true; 
 
-            // SOLUÇÃO 2: Intercepta perguntas de identidade
-            const lowerText = text.toLowerCase();
-            if (lowerText.includes("quem é você") || lowerText.includes("quem te criou") || lowerText.includes("o que é crisalida")) {
-                setTimeout(() => {
-                    addMessage('ai', CRISALIDA_IDENTITY);
-                    userInput.disabled = false;
-                    userInput.focus();
-                }, 500); // Pequeno delay para simular o tempo de resposta
-                return;
-            }
-
             const loadingId = addLoading();
 
             try {
-                // SOLUÇÃO 2: Instrução minimalista para formatação e sem identidade.
-                const finalInstruction = `Responda usando formatação Markdown. Pergunta: ${text}`;
+                // Monta a query final: [Identidade Pura] + [Instrução de Formatação] + [Pergunta do Usuário]
+                const finalInstruction = `${IDENTITY_SYSTEM_PROMPT} Responda usando formatação Markdown. Pergunta: ${text}`;
                 const query = encodeURIComponent(finalInstruction);
                 
                 const req = await fetch(API_URL + query);
@@ -424,7 +413,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Olá! Eu sou a **Crisálida**, uma IA criada por **Redzin**. Como posso ajudar você hoje?");
+                // Mensagem inicial mais direta para evitar ambiguidade.
+                addMessage('ai', "Crisálida, IA criada por Redzin. Comece a conversa.");
             }
         });
     </script>
