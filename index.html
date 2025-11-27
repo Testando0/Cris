@@ -273,10 +273,11 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // URLs das APIs
+        // URLs das APIs de Chat
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        const SEARCH_API_URL = "https://delirius-apiofc.vercel.app/search/ytsearch?q="; 
-        const DOWNLOAD_API_URL = "https://delirius-apiofc.vercel.app/download/ytmp3?url="; 
+        
+        // NOVA URL da API de Música (inclui a chave, se necessário)
+        const MUSIC_API_URL = "https://apis.davidcyriltech.my.id/play?apikey=REDZ2&query=";
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
@@ -315,34 +316,28 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Função para adicionar a mensagem de música com player e botão de download
+        // Função para adicionar a mensagem de música com player e botão de download (AJUSTADA para nova API)
         function addMusicMessage(data) {
-            // NOTE: 'data' é o objeto JSON aninhado sob 'data' da resposta da API de download
+            // NOTE: 'data' é o objeto 'resultado' da nova API
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
-            const title = data.title || 'Música Desconhecida'; // Ajuste: usando 'title'
-            const author = data.author || 'Autor Desconhecido'; // Ajuste: usando 'author'
+            const title = data.título || 'Música Desconhecida';
+            const duration = data.duração || 'Duração Desconhecida';
+            const views = data.visualizações ? data.visualizações.toLocaleString('pt-BR') : 'Desconhecidas';
+            const downloadUrl = data.download_url;
             
-            // Certifique-se de que data.download existe
-            const downloadInfo = data.download || {}; 
-            
-            const quality = downloadInfo.quality || 'Desconhecida';
-            const size = downloadInfo.size || '0 MB';
-            const downloadUrl = downloadInfo.url;
-            
-            // Verifica se o URL é válido antes de prosseguir
             if (!downloadUrl) {
-                 addMessage('ai', `❌ Não foi possível extrair o URL de download. Resposta da API de download incompleta.`);
+                 addMessage('ai', `❌ Não foi possível extrair o URL de download da música. O resultado estava incompleto.`);
                  return;
             }
 
+            // O nome do arquivo será o título, removendo caracteres especiais e truncando.
             const filename = title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3';
 
             const contentHtml = `
                 <h3 style="margin-top: 0; font-weight: 600;">🎵 Música Encontrada: ${title}</h3>
-                <p><strong>Artista/Canal:</strong> ${author}</p>
-                <p><strong>Qualidade:</strong> ${quality} | <strong>Tamanho:</strong> ${size}</p>
+                <p><strong>Duração:</strong> ${duration} | <strong>Visualizações:</strong> ${views}</p>
                 <div style="margin-top: 15px; background-color: #18181a; padding: 10px; border-radius: 12px;">
                     <audio controls preload="none" style="width: 100%; display: block; filter: none;">
                         <source src="${downloadUrl}" type="audio/mp3">
@@ -395,7 +390,7 @@
             
             let errorMessage = null;
 
-            // LÓGICA DE BYPASS DE IDENTIDADE
+            // LÓGICA DE BYPASS DE IDENTIDADE (MANTIDA)
             const identityKeywords = [
                 "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
                 "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
@@ -432,50 +427,33 @@
                 const musicQuery = text.substring(5).trim();
 
                 try {
-                    // 1. Busca do Vídeo
-                    const searchUrl = SEARCH_API_URL + encodeURIComponent(musicQuery);
-                    let searchRes;
+                    // 1. Única Requisição de Busca e Download
+                    const musicSearchUrl = MUSIC_API_URL + encodeURIComponent(musicQuery);
+                    let musicRes;
+                    
                     try {
-                        const searchReq = await fetch(searchUrl);
-                        searchRes = await searchReq.json();
+                        const musicReq = await fetch(musicSearchUrl);
+                        musicRes = await musicReq.json();
                     } catch (e) {
-                        errorMessage = `Falha na requisição de busca (Erro de Conexão ou JSON inválido).`;
+                        errorMessage = `Falha na requisição de música (Erro de Conexão ou JSON inválido).`;
                         throw new Error(errorMessage);
                     }
                     
-                    if (!searchRes.status || !searchRes.data || searchRes.data.length === 0 || !searchRes.data[0].url) {
-                        errorMessage = `A API de busca não encontrou resultados ou o formato de resposta (status/data/url) não é válido.`;
-                        throw new Error(errorMessage);
-                    }
-
-                    const videoUrl = searchRes.data[0].url; 
-                    
-                    // 2. Download MP3
-                    const downloadUrl = DOWNLOAD_API_URL + encodeURIComponent(videoUrl);
-                    let downloadRes;
-                    try {
-                        const downloadReq = await fetch(downloadUrl);
-                        downloadRes = await downloadReq.json();
-                    } catch (e) {
-                        errorMessage = `Falha na requisição de download (Erro de Conexão ou JSON inválido).`;
-                        throw new Error(errorMessage);
-                    }
-
-                    // *** CORREÇÃO APLICADA AQUI: USANDO downloadRes.data ***
-                    if (!downloadRes.status || !downloadRes.data || !downloadRes.data.download || !downloadRes.data.download.url) {
-                        errorMessage = `A API de download não retornou o link final ou falhou na conversão. (Estrutura inválida: status/data.download.url).`;
+                    // 2. Verificação de Sucesso da Resposta (usando 'status' e 'resultado')
+                    if (!musicRes.status || !musicRes.resultado || !musicRes.resultado.download_url) {
+                        errorMessage = `A API de música não encontrou resultados ou o formato de resposta (status/resultado.download_url) não é válido.`;
                         throw new Error(errorMessage);
                     }
                     
                     // 3. Sucesso: Exibir o resultado
                     document.getElementById(loadingId).remove();
-                    // *** CORREÇÃO APLICADA AQUI: PASSANDO downloadRes.data ***
-                    addMusicMessage(downloadRes.data);
+                    // Passa o objeto 'resultado' para a função de exibição
+                    addMusicMessage(musicRes.resultado);
 
                 } catch (err) {
                     // Captura e exibe o erro na tela
                     document.getElementById(loadingId).remove();
-                    addMessage('ai', `**❌ Erro na Música:** Não foi possível completar o pedido. \n\n**Detalhe:** ${errorMessage || err.message || "Erro de rede desconhecido."}`);
+                    addMessage('ai', `**❌ Erro na Música:** Não foi possível completar o pedido. \n\n**Detalhe:** ${errorMessage || err.message || "Erro desconhecido."}`);
                 } finally {
                     userInput.disabled = false;
                     userInput.focus();
