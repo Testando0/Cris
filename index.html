@@ -18,7 +18,8 @@
             --accent-green: #10a37f;
             --bubble-user: #18181a; 
             --bubble-ai: #252525;
-            --footer-height-buffer: 180px; /* Garante espaço para o footer */
+            /* SOLUÇÃO 1: Espaço extra no final para evitar que o input cubra o texto */
+            --footer-height-buffer: 200px; 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -48,7 +49,7 @@
             display: flex;
             flex-direction: column;
             scroll-behavior: smooth;
-            /* SOLUÇÃO 1: Aumenta o padding inferior para evitar que as bolhas se escondam */
+            /* Aplica o buffer */
             padding-bottom: var(--footer-height-buffer); 
             padding-top: 20px;
         }
@@ -169,7 +170,8 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000000 40%);
+            /* SOLUÇÃO 1: Garante que o gradiente e o input sejam grandes */
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000000 30%); 
             padding: 1.5rem 1rem;
             display: flex;
             flex-direction: column;
@@ -262,7 +264,7 @@
             .avatar { width: 28px; height: 28px; font-size: 13px; }
             footer { padding: 1rem 1rem; }
             /* Ajuste do buffer em telas menores */
-            :root { --footer-height-buffer: 160px; }
+            :root { --footer-height-buffer: 170px; }
         }
     </style>
 </head>
@@ -292,8 +294,10 @@
         const sendBtn = document.getElementById('send-btn');
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        // SOLUÇÃO 2: INSTRUÇÃO MÍNIMA para prevenir interferência nas respostas, apenas definindo o nome.
-        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Use formatação Markdown. Responda à seguinte pergunta: ";
+        
+        // SOLUÇÃO 2: INSTRUÇÃO MÍNIMA para prevenir interferência nas respostas. 
+        // A formatação Markdown será solicitada separadamente na query.
+        const IDENTITY_CONTEXT = "IA: Crisálida. Criador: Redzin.";
 
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
@@ -333,13 +337,16 @@
             const loadingId = addLoading();
 
             try {
-                const query = encodeURIComponent(SYSTEM_INSTRUCTION + text);
+                // Monta a query final com a instrução de contexto e a formatação Markdown
+                const finalInstruction = `(${IDENTITY_CONTEXT} Use formatação Markdown). Pergunta: ${text}`;
+                const query = encodeURIComponent(finalInstruction);
+                
                 const req = await fetch(API_URL + query);
                 const res = await req.json();
 
                 document.getElementById(loadingId).remove();
 
-                const answer = res.data || res.answer || res.response || "Não foi possível obter resposta.";
+                const answer = res.data || res.answer || res.response || "Não foi possível obter resposta. Erro na API.";
                 
                 addMessage('ai', answer);
 
@@ -409,10 +416,9 @@
         
         // Mensagem de boas vindas inicial
         document.addEventListener('DOMContentLoaded', () => {
-            // Verifica se só existe o empty state
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Olá. Eu sou a **Crisálida**, criada por Redzin. Como posso ajudar você hoje?");
+                addMessage('ai', "Olá! Eu sou a **Crisálida**, uma IA criada por **Redzin**. Estou pronta para ajudá-lo. Pode começar sua conversa.");
             }
         });
     </script>
