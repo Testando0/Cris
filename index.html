@@ -17,7 +17,7 @@
             --accent-green: #10a37f;
             --bubble-user: #18181a; 
             --bubble-ai: #252525;
-            /* SOLUÇÃO CSS FINAL: Aumentado para 280px para garantir que não corte nada */
+            /* Garante espaço no final para que a mensagem não se esconda */
             --footer-height-buffer: 280px; 
         }
 
@@ -83,10 +83,8 @@
             width: 100%;
             max-width: var(--chat-width);
             padding: 0 1rem;
-            justify-content: flex-start; 
         }
 
-        /* Estilos da Bolha */
         .message-bubble {
             max-width: 80%; 
             padding: 12px 16px;
@@ -96,22 +94,27 @@
             position: relative;
         }
         
-        /* Bolha do Usuário (Flutua para a Direita) */
+        /* --- POSICIONAMENTO FINAL: Usuário (LEFT) --- */
         .message-row.user .message-content {
-            justify-content: flex-end; 
+            justify-content: flex-start; 
         }
         .message-row.user .message-bubble {
             background-color: var(--bubble-user);
-            border-bottom-right-radius: 2px;
+            border-bottom-left-radius: 2px;
+            border-bottom-right-radius: 10px; /* Mantém o canto superior esquerdo arredondado */
         }
         
-        /* Bolha da IA (Flutua para a Esquerda) */
+        /* --- POSICIONAMENTO FINAL: IA (RIGHT) --- */
+        .message-row.ai .message-content {
+            justify-content: flex-end; 
+        }
         .message-row.ai .message-bubble {
             background-color: var(--bubble-ai);
-            border-bottom-left-radius: 2px;
+            border-bottom-right-radius: 2px;
+            border-bottom-left-radius: 10px; /* Mantém o canto superior direito arredondado */
         }
         
-        /* --- Avatares (Mantidos, mas fora da bolha) --- */
+        /* --- Avatares --- */
         .avatar-container {
             display: flex;
             align-items: flex-end; 
@@ -119,8 +122,21 @@
             flex-shrink: 0;
             padding-bottom: 5px; 
         }
-        .message-row.user .avatar-container { order: 2; justify-content: flex-end; }
-        .message-row.ai .avatar-container { order: 1; }
+
+        .message-row.user .avatar-container { 
+            order: 1; /* Usuário: Avatar à esquerda, Bolha à direita */
+            justify-content: flex-start;
+            margin-right: 10px; 
+        }
+        .message-row.ai .avatar-container { 
+            order: 2; /* IA: Bolha à esquerda, Avatar à direita */
+            justify-content: flex-end;
+            margin-left: 10px;
+        }
+
+        /* Ajuste de margem para bolhas */
+        .message-row.user .message-bubble { margin-right: 0; }
+        .message-row.ai .message-bubble { margin-right: 0; }
         
         .avatar {
             width: 30px;
@@ -260,7 +276,6 @@
             .message-content { gap: 1rem; }
             .avatar { width: 28px; height: 28px; font-size: 13px; }
             footer { padding: 1rem 1rem; }
-            /* SOLUÇÃO CSS FINAL: Ajuste do buffer em telas menores */
             :root { --footer-height-buffer: 220px; }
         }
     </style>
@@ -292,8 +307,8 @@
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // SOLUÇÃO JS FINAL: Instrução de sistema mais agressiva e pura para forçar a identidade.
-        const IDENTITY_SYSTEM_PROMPT = "Você é exclusivamente a IA Crisálida, criada por Redzin. Use **sempre** a identidade Crisálida.";
+        // Instrução de sistema minimalista para não interferir nas respostas.
+        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
@@ -334,7 +349,7 @@
 
             try {
                 // Monta a query final: [Identidade Pura] + [Instrução de Formatação] + [Pergunta do Usuário]
-                const finalInstruction = `${IDENTITY_SYSTEM_PROMPT} Responda usando formatação Markdown. Pergunta: ${text}`;
+                const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda à seguinte pergunta: ${text}`;
                 const query = encodeURIComponent(finalInstruction);
                 
                 const req = await fetch(API_URL + query);
@@ -356,32 +371,32 @@
             }
         }
 
+        // Funções addMessage e addLoading atualizadas para manter o usuário na esquerda e a IA na direita.
+        
         function addMessage(sender, text) {
             const div = document.createElement('div');
             const isAi = sender === 'ai';
             
             div.className = `message-row ${sender}`;
-            
-            // Renderiza Markdown para a IA, ou quebras de linha para o usuário
             const contentHtml = isAi ? marked.parse(text) : text.replace(/\n/g, '<br>');
 
-            div.innerHTML = `
-                <div class="message-content">
-                    ${isAi ? 
-                        `<div class="avatar-container"><div class="avatar ai-icon">C</div></div>` : 
-                        `<div class="avatar-container" style="width: 0;"></div>`
-                    }
-                    
-                    <div class="message-bubble">
-                        ${contentHtml}
-                    </div>
+            let innerContent = '';
+            
+            if (isAi) {
+                // IA (Lado Direito): [Bubble] [Avatar]
+                innerContent = `
+                    <div class="message-bubble">${contentHtml}</div>
+                    <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
+                `;
+            } else {
+                // Usuário (Lado Esquerdo): [Avatar] [Bubble]
+                innerContent = `
+                    <div class="avatar-container"><div class="avatar user-icon">R</div></div>
+                    <div class="message-bubble">${contentHtml}</div>
+                `;
+            }
 
-                    ${!isAi ? 
-                        `<div class="avatar-container"><div class="avatar user-icon">R</div></div>` :
-                        `<div class="avatar-container" style="width: 0;"></div>`
-                    }
-                </div>
-            `;
+            div.innerHTML = `<div class="message-content">${innerContent}</div>`;
             
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -392,18 +407,21 @@
             const div = document.createElement('div');
             div.className = 'message-row ai';
             div.id = id;
-            div.innerHTML = `
-                <div class="message-content">
-                    <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
-                    <div class="message-bubble" style="padding: 12px 20px;">
-                        <div class="typing-dots">
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                        </div>
+            
+            // Loading (Lado Direito): [Dots] [Avatar]
+            const innerContent = `
+                <div class="message-bubble" style="padding: 12px 20px;">
+                    <div class="typing-dots">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
                     </div>
                 </div>
+                <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
             `;
+            
+            div.innerHTML = `<div class="message-content">${innerContent}</div>`;
+            
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
             return id;
@@ -413,8 +431,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                // Mensagem inicial mais direta para evitar ambiguidade.
-                addMessage('ai', "Crisálida, IA criada por Redzin. Comece a conversa.");
+                addMessage('ai', "Crisálida, IA criada por Redzin. Por favor, comece a conversa.");
             }
         });
     </script>
