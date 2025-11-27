@@ -96,7 +96,7 @@
         
         /* --- Usuário (LEFT) --- */
         .message-row.user .message-content {
-            justify-content: flex-start; /* Alinhamento esquerdo do bloco de conteúdo */
+            justify-content: flex-start; 
         }
         .message-row.user .message-bubble {
             background-color: var(--bubble-user);
@@ -106,7 +106,7 @@
         
         /* --- IA (RIGHT) --- */
         .message-row.ai .message-content {
-            justify-content: flex-end; /* Alinhamento direito do bloco de conteúdo */
+            justify-content: flex-end; 
         }
         .message-row.ai .message-bubble {
             background-color: var(--bubble-ai);
@@ -123,13 +123,13 @@
             padding-bottom: 5px; 
         }
 
-        /* Usuário: Avatar (1) -> Bolha (2) */
+        /* Usuário: Avatar (1) -> Bolha (2) (Lado Esquerdo) */
         .message-row.user .avatar-container { 
             order: 1;
             justify-content: flex-start;
             margin-right: 10px; 
         }
-        /* IA: Bolha (1) -> Avatar (2) */
+        /* IA: Bolha (1) -> Avatar (2) (Lado Direito) */
         .message-row.ai .avatar-container { 
             order: 2;
             justify-content: flex-end;
@@ -347,7 +347,6 @@
 
             try {
                 // Monta a query final: [Identidade Pura] + [Instrução de Formatação] + [Pergunta do Usuário]
-                // A instrução de identidade não tem comando de repetição.
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda à seguinte pergunta: ${text}`;
                 const query = encodeURIComponent(finalInstruction);
                 
@@ -382,6 +381,7 @@
             
             if (isAi) {
                 // IA (Lado Direito): [Bubble] [Avatar]
+                // A ordem de elementos na string HTML é crucial para o flexbox funcionar com "order".
                 innerContent = `
                     <div class="message-bubble">${contentHtml}</div>
                     <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
