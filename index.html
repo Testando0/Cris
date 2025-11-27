@@ -14,7 +14,6 @@
             --bg-color: #000000;
             --chat-width: 48rem; 
             --text-primary: #ECECF1;
-            --accent-green: #10a37f;
             
             /* Cores Estilo iOS */
             --msg-user-color: #ffffff; 
@@ -79,7 +78,7 @@
             font-weight: 400;
         }
         
-        /* --- CRISÁLIDA (IA) - ESQUERDA (iOS Light Gray) --- */
+        /* --- CRISÁLIDA (IA) - ESQUERDA (iOS Dark Gray) --- */
         .message-row.ai {
             text-align: left;
         }
@@ -139,7 +138,7 @@
         .message-content ul, .message-content ol { margin-left: 20px; margin-bottom: 10px; }
         .message-content p { margin-bottom: 10px; }
         .message-content p:last-child { margin-bottom: 0; }
-        .message-content a { color: var(--accent-green); text-decoration: none; }
+        .message-content a { color: #5B8FF9; text-decoration: none; } /* Links azuis */
 
         /* --- Input e Footer --- */
         footer {
@@ -274,8 +273,8 @@
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // INSTRUÇÃO REFORÇADA: Garante que o nome Redzin seja sempre citado como criador.
-        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. É uma regra fundamental que, se for perguntado quem te criou, ou quem é seu desenvolvedor/dono, você responda diretamente: 'Eu fui criada por Redzin.'.";
+        // Esta instrução é usada para perguntas gerais, mas será ignorada para perguntas de identidade.
+        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
@@ -302,9 +301,34 @@
             if (!text) return;
 
             if(emptyState) emptyState.style.display = 'none';
+            
+            // =========================================================================
+            // ** MECANISMO DE BYPASS E INTERCEPTAÇÃO DE IDENTIDADE **
+            // Garante que a resposta seja SEMPRE Crisálida/Redzin.
+            // =========================================================================
+            const lowerText = text.toLowerCase();
+            const identityKeywords = ["quem te criou", "quem é seu dono", "qual seu nome", "quem é você", "quem te desenvolveu", "criador", "sua criadora", "seu criador"];
+
+            if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
+                const fixedAnswer = "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**.";
+                addMessage('user', text); 
+                addMessage('ai', fixedAnswer); 
+                
+                // Limpa e foca o input, permitindo nova digitação (bypass completo da API).
+                userInput.value = '';
+                userInput.style.height = '24px';
+                sendBtn.classList.remove('active');
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+                return; // <-- SAI DA FUNÇÃO, IMPEDINDO A CHAMADA DA API EXTERNA
+            }
+            // =========================================================================
+            
+            // Se não for uma pergunta de identidade, procede normalmente e chama a API (Gemini).
             addMessage('user', text);
 
-            // UI Updates
+            // UI Updates (para a chamada da API)
             userInput.value = '';
             userInput.style.height = '24px';
             sendBtn.classList.remove('active');
@@ -314,7 +338,6 @@
             const loadingId = addLoading();
 
             try {
-                // Monta a query final: [Identidade Pura/Instrução Reforçada] + [Instrução de Formatação] + [Pergunta do Usuário]
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda à seguinte pergunta: ${text}`;
                 const query = encodeURIComponent(finalInstruction);
                 
