@@ -15,13 +15,13 @@
             --chat-width: 48rem; 
             --text-primary: #ECECF1;
             
-            /* Cores Estilo iOS */
+            /* Cores Estilo Dark Mode Personalizado */
             --msg-user-color: #ffffff; 
             --msg-ai-color: #ECECF1; 
             
-            /* Bolha do Usuário (iOS Blue Gradient) */
-            --msg-user-bg-start: #007AFF; 
-            --msg-user-bg-end: #005EAA; 
+            /* Bolha do Usuário (Novo: Verde Escuro/Azulado) */
+            --msg-user-bg-start: #007C64; /* Verde mais claro */
+            --msg-user-bg-end: #005C4B;   /* Verde mais escuro */
             
             /* Bolha da IA (iOS Dark Gray) */
             --msg-ai-bg: #252525; 
@@ -88,11 +88,12 @@
             border-top-left-radius: 6px; 
         }
         
-        /* --- USUÁRIO - DIREITA (iOS Blue Gradient) --- */
+        /* --- USUÁRIO - DIREITA (Green Dark Gradient) --- */
         .message-row.user {
             text-align: right;
         }
         .message-row.user .message-content {
+            /* APLICANDO A NOVA COR VERDE ESCURO */
             background: linear-gradient(135deg, var(--msg-user-bg-start), var(--msg-user-bg-end));
             color: var(--msg-user-color);
             border-top-right-radius: 6px; 
@@ -138,7 +139,7 @@
         .message-content ul, .message-content ol { margin-left: 20px; margin-bottom: 10px; }
         .message-content p { margin-bottom: 10px; }
         .message-content p:last-child { margin-bottom: 0; }
-        .message-content a { color: #5B8FF9; text-decoration: none; } /* Links azuis */
+        .message-content a { color: #5B8FF9; text-decoration: none; } 
 
         /* --- Input e Footer --- */
         footer {
@@ -200,7 +201,7 @@
         }
 
         button#send-btn.active {
-            background-color: var(--msg-user-bg-start); 
+            background-color: var(--msg-user-bg-end); /* Usa o verde mais escuro */
             color: white;
         }
         
@@ -273,7 +274,6 @@
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // Esta instrução é usada para perguntas gerais, mas será ignorada para perguntas de identidade.
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
         // Auto-resize do textarea
@@ -303,11 +303,16 @@
             if(emptyState) emptyState.style.display = 'none';
             
             // =========================================================================
-            // ** MECANISMO DE BYPASS E INTERCEPTAÇÃO DE IDENTIDADE **
+            // ** MECANISMO DE BYPASS E INTERCEPTAÇÃO DE IDENTIDADE (EXPANDIDO) **
             // Garante que a resposta seja SEMPRE Crisálida/Redzin.
             // =========================================================================
             const lowerText = text.toLowerCase();
-            const identityKeywords = ["quem te criou", "quem é seu dono", "qual seu nome", "quem é você", "quem te desenvolveu", "criador", "sua criadora", "seu criador"];
+            const identityKeywords = [
+                // Identidade/Nome
+                "qual seu nome", "quem é você", "diga seu nome", "vc se chama", 
+                // Criador/Dono
+                "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou"
+            ];
 
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
                 const fixedAnswer = "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**.";
