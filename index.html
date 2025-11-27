@@ -19,9 +19,9 @@
             --msg-user-color: #ffffff; 
             --msg-ai-color: #ECECF1; 
             
-            /* Bolha do Usuário (Novo: Verde Escuro/Azulado) */
-            --msg-user-bg-start: #007C64; /* Verde mais claro */
-            --msg-user-bg-end: #005C4B;   /* Verde mais escuro */
+            /* Bolha do Usuário (NOVO: Cinza Chumbo Escuro) */
+            --msg-user-bg-start: #444444; 
+            --msg-user-bg-end: #333333;   
             
             /* Bolha da IA (iOS Dark Gray) */
             --msg-ai-bg: #252525; 
@@ -88,12 +88,12 @@
             border-top-left-radius: 6px; 
         }
         
-        /* --- USUÁRIO - DIREITA (Green Dark Gradient) --- */
+        /* --- USUÁRIO - DIREITA (Cinza Chumbo) --- */
         .message-row.user {
             text-align: right;
         }
         .message-row.user .message-content {
-            /* APLICANDO A NOVA COR VERDE ESCURO */
+            /* APLICANDO A NOVA COR CINZA CHUMBO */
             background: linear-gradient(135deg, var(--msg-user-bg-start), var(--msg-user-bg-end));
             color: var(--msg-user-color);
             border-top-right-radius: 6px; 
@@ -201,7 +201,7 @@
         }
 
         button#send-btn.active {
-            background-color: var(--msg-user-bg-end); /* Usa o verde mais escuro */
+            background-color: var(--msg-user-bg-end); /* Usa o cinza chumbo mais escuro */
             color: white;
         }
         
@@ -303,15 +303,16 @@
             if(emptyState) emptyState.style.display = 'none';
             
             // =========================================================================
-            // ** MECANISMO DE BYPASS E INTERCEPTAÇÃO DE IDENTIDADE (EXPANDIDO) **
+            // ** MECANISMO DE BYPASS E INTERCEPTAÇÃO DE IDENTIDADE **
             // Garante que a resposta seja SEMPRE Crisálida/Redzin.
             // =========================================================================
             const lowerText = text.toLowerCase();
+            // Lista expandida de palavras-chave para cobrir todas as variações de perguntas sobre identidade.
             const identityKeywords = [
                 // Identidade/Nome
-                "qual seu nome", "quem é você", "diga seu nome", "vc se chama", 
+                "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
                 // Criador/Dono
-                "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou"
+                "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
             ];
 
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
@@ -343,6 +344,7 @@
             const loadingId = addLoading();
 
             try {
+                // Inclui a instrução de sistema (que será ignorada pelo Gemini, mas é boa prática)
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda à seguinte pergunta: ${text}`;
                 const query = encodeURIComponent(finalInstruction);
                 
