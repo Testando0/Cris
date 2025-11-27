@@ -18,6 +18,7 @@
             --accent-green: #10a37f;
             --bubble-user: #18181a; 
             --bubble-ai: #252525;
+            --footer-height-buffer: 180px; /* Garante espaço para o footer */
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -47,7 +48,8 @@
             display: flex;
             flex-direction: column;
             scroll-behavior: smooth;
-            padding-bottom: 150px; 
+            /* SOLUÇÃO 1: Aumenta o padding inferior para evitar que as bolhas se escondam */
+            padding-bottom: var(--footer-height-buffer); 
             padding-top: 20px;
         }
 
@@ -161,7 +163,7 @@
         .message-bubble p:last-child { margin-bottom: 0; }
         .message-bubble a { color: var(--accent-green); text-decoration: none; }
 
-        /* --- Input e Footer (Mantidos) --- */
+        /* --- Input e Footer (Fixo embaixo) --- */
         footer {
             position: fixed;
             bottom: 0;
@@ -259,6 +261,8 @@
             .message-content { gap: 1rem; }
             .avatar { width: 28px; height: 28px; font-size: 13px; }
             footer { padding: 1rem 1rem; }
+            /* Ajuste do buffer em telas menores */
+            :root { --footer-height-buffer: 160px; }
         }
     </style>
 </head>
@@ -288,8 +292,8 @@
         const sendBtn = document.getElementById('send-btn');
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        // INSTRUÇÃO MINIMALISTA: Foca apenas na identidade para não interferir nas respostas
-        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Use formatação Markdown (negrito, listas, código). Responda de forma completa à seguinte pergunta: ";
+        // SOLUÇÃO 2: INSTRUÇÃO MÍNIMA para prevenir interferência nas respostas, apenas definindo o nome.
+        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Use formatação Markdown. Responda à seguinte pergunta: ";
 
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
@@ -377,6 +381,7 @@
             `;
             
             chatContainer.appendChild(div);
+            // Garante que o scroll vá para o final
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
@@ -402,12 +407,12 @@
             return id;
         }
         
-        // Mensagem de boas vindas inicial para preencher o Empty State na primeira carga
+        // Mensagem de boas vindas inicial
         document.addEventListener('DOMContentLoaded', () => {
-            // Verifica se não há mensagens (além do empty state, que é flex:1)
+            // Verifica se só existe o empty state
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Olá. Eu sou a **Crisálida**, uma inteligência artificial criada por Redzin. Estou pronta para processar suas solicitações. Como posso ser útil hoje?");
+                addMessage('ai', "Olá. Eu sou a **Crisálida**, criada por Redzin. Como posso ajudar você hoje?");
             }
         });
     </script>
