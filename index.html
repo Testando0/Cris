@@ -382,12 +382,14 @@
             
             if (isAi) {
                 // Crisálida (Lado ESQUERDO): [Avatar] [Bubble]
+                // A ordem correta é Avatar primeiro no HTML
                 innerContent = `
                     <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
                     <div class="message-bubble">${contentHtml}</div>
                 `;
             } else {
                 // Usuário (Lado DIREITO): [Bubble] [Avatar]
+                // A ordem correta é Bubble primeiro no HTML, pois o CSS inverte via 'order: 2' no avatar.
                 innerContent = `
                     <div class="message-bubble">${contentHtml}</div>
                     <div class="avatar-container"><div class="avatar user-icon">R</div></div>
