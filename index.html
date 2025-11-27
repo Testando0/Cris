@@ -276,8 +276,8 @@
         // URLs das APIs de Chat
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // NOVA URL da API de Música (inclui a chave, se necessário)
-        const MUSIC_API_URL = "https://apis.davidcyriltech.my.id/play?apikey=REDZ2&query=";
+        // NOVA URL da API de Música (Alterado apikey para REDZ conforme a última mensagem do usuário)
+        const MUSIC_API_URL = "https://apis.davidcyriltech.my.id/play?apikey=REDZ&query=";
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
@@ -322,13 +322,18 @@
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
+            // Usando as chaves corretas com acentos:
             const title = data.título || 'Música Desconhecida';
             const duration = data.duração || 'Duração Desconhecida';
-            const views = data.visualizações ? data.visualizações.toLocaleString('pt-BR') : 'Desconhecidas';
+            
+            // O campo 'visualizações' pode não existir ou ser numérico/string. Tentativa de formatação segura.
+            const views = data.visualizações ? String(data.visualizações).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
+            
             const downloadUrl = data.download_url;
             
             if (!downloadUrl) {
-                 addMessage('ai', `❌ Não foi possível extrair o URL de download da música. O resultado estava incompleto.`);
+                 // Este caso já deveria ser pego na validação de sucesso, mas serve como fallback.
+                 addMessage('ai', `❌ Não foi possível extrair o URL de download. O resultado estava incompleto.`);
                  return;
             }
 
@@ -435,25 +440,33 @@
                         const musicReq = await fetch(musicSearchUrl);
                         musicRes = await musicReq.json();
                     } catch (e) {
-                        errorMessage = `Falha na requisição de música (Erro de Conexão ou JSON inválido).`;
+                        errorMessage = `Falha na requisição de música (Erro de Conexão ou JSON inválido). Verifique se a URL da API está correta e funcionando.`;
                         throw new Error(errorMessage);
                     }
                     
-                    // 2. Verificação de Sucesso da Resposta (usando 'status' e 'resultado')
-                    if (!musicRes.status || !musicRes.resultado || !musicRes.resultado.download_url) {
-                        errorMessage = `A API de música não encontrou resultados ou o formato de resposta (status/resultado.download_url) não é válido.`;
+                    // 2. Verificação de Sucesso da Resposta (Validação Robusta)
+                    // Verifica se o status é estritamente TRUE (lida com "verdadeiro" ou "false" se forem strings)
+                    if (musicRes.status !== true || !musicRes.resultado || !musicRes.resultado.download_url) {
+                        errorMessage = `A API de música retornou erro (${musicRes.criador ? 'Criador: ' + musicRes.criador : 'API sem criador'}). O resultado ou o URL de download estão ausentes.`;
+                        
+                        // Mensagem de fallback para quando a música não for encontrada
+                        if (musicRes.status === false && musicRes.mensagem) {
+                            errorMessage = `Música não encontrada. Detalhe da API: ${musicRes.mensagem}`;
+                        } else if (musicQuery === '') {
+                             errorMessage = `O comando **play** deve ser seguido pelo nome da música. Tente: **play Faded**`;
+                        }
+
                         throw new Error(errorMessage);
                     }
                     
                     // 3. Sucesso: Exibir o resultado
                     document.getElementById(loadingId).remove();
-                    // Passa o objeto 'resultado' para a função de exibição
                     addMusicMessage(musicRes.resultado);
 
                 } catch (err) {
                     // Captura e exibe o erro na tela
                     document.getElementById(loadingId).remove();
-                    addMessage('ai', `**❌ Erro na Música:** Não foi possível completar o pedido. \n\n**Detalhe:** ${errorMessage || err.message || "Erro desconhecido."}`);
+                    addMessage('ai', `**❌ Erro na Música:** Não foi possível completar o pedido. \n\n**Detalhe:** ${errorMessage || err.message || "Erro desconhecido. Verifique se digitou o nome da música corretamente."}`);
                 } finally {
                     userInput.disabled = false;
                     userInput.focus();
