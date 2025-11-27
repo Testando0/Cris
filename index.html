@@ -98,30 +98,25 @@
         /* --- CRISÁLIDA (ESQUERDA) --- */
         .message-row.ai .message-content {
             justify-content: flex-start; /* Alinhamento esquerdo do bloco de conteúdo */
+            flex-direction: row; /* Avatar (1) -> Bolha (2) */
         }
         .message-row.ai .message-bubble {
             background-color: var(--bubble-ai);
             border-bottom-left-radius: 2px; /* Ponta do balão na ESQUERDA */
             border-bottom-right-radius: 10px; 
-            margin-left: 10px; /* Espaçamento da bolha para o avatar */
+            margin-left: 10px; 
         }
-        /* Ajuste fino para a linha da IA, garantindo que o avatar e a bolha fiquem juntos */
-        .message-row.ai .message-content {
-            flex-direction: row; /* Avatar e Bolha na ordem normal do HTML */
-        }
-
-
+        
         /* --- USUÁRIO (DIREITA) --- */
         .message-row.user .message-content {
             justify-content: flex-end; /* Alinhamento direito do bloco de conteúdo */
-            /* INVERSÃO: Bolha primeiro, Avatar depois, ambos alinhados à direita */
-            flex-direction: row-reverse; 
+            flex-direction: row-reverse; /* Bolha (1) -> Avatar (2) */
         }
         .message-row.user .message-bubble {
             background-color: var(--bubble-user);
             border-bottom-right-radius: 2px; /* Ponta do balão na DIREITA */
             border-bottom-left-radius: 10px; 
-            margin-right: 10px; /* Espaçamento da bolha para o avatar */
+            margin-right: 10px; 
         }
         
         /* --- Avatares --- */
@@ -133,17 +128,6 @@
             padding-bottom: 5px; 
         }
 
-        /* Avatar da IA no HTML é o primeiro (order padrão) */
-        .message-row.ai .avatar-container { 
-            order: 0; /* Default/Primeiro */
-            justify-content: flex-start;
-        }
-        /* Avatar do Usuário no HTML é o segundo, mas é alinhado à direita pelo flex-direction: row-reverse */
-        .message-row.user .avatar-container { 
-            order: 0; /* Default/Primeiro na ordem reversa, que o coloca no fim visual */
-            justify-content: flex-end;
-        }
-        
         .avatar {
             width: 30px;
             height: 30px;
@@ -389,14 +373,14 @@
             
             if (isAi) {
                 // Crisálida (Lado ESQUERDO): [Avatar] [Bubble]
-                // Ordem: Avatar -> Bolha no HTML
+                // Ordem: Avatar -> Bolha no HTML (CSS usa flex-direction: row)
                 innerContent = `
                     <div class="avatar-container"><div class="avatar ai-icon">C</div></div>
                     <div class="message-bubble">${contentHtml}</div>
                 `;
             } else {
                 // Usuário (Lado DIREITO): [Bubble] [Avatar]
-                // Ordem: Bolha -> Avatar no HTML. O CSS usa 'flex-direction: row-reverse' para alinhar na direita.
+                // Ordem: Bolha -> Avatar no HTML (CSS usa flex-direction: row-reverse)
                 innerContent = `
                     <div class="message-bubble">${contentHtml}</div>
                     <div class="avatar-container"><div class="avatar user-icon">R</div></div>
