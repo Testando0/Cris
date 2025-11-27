@@ -16,8 +16,8 @@
             --text-primary: #ECECF1;
             --text-secondary: #9B9B9B;
             --accent-green: #10a37f;
-            --bubble-user: #18181a; /* Mais escuro */
-            --bubble-ai: #252525; /* Mais claro para contraste com o user */
+            --bubble-user: #18181a; 
+            --bubble-ai: #252525;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -70,10 +70,9 @@
         /* --- Linhas de Mensagem (Container) --- */
         .message-row {
             width: 100%;
-            padding: 8px 10px; /* Padding menor entre as bolhas */
+            padding: 8px 10px; 
             display: flex;
             justify-content: center;
-            /* Remove a linha divisória */
             border-bottom: none; 
         }
 
@@ -83,13 +82,12 @@
             width: 100%;
             max-width: var(--chat-width);
             padding: 0 1rem;
-            /* Centraliza o conteúdo (bolha) dentro da linha do chat */
             justify-content: flex-start; 
         }
 
         /* Estilos da Bolha */
         .message-bubble {
-            max-width: 80%; /* Limita a largura da bolha */
+            max-width: 80%; 
             padding: 12px 16px;
             border-radius: 10px;
             font-weight: 300;
@@ -103,7 +101,7 @@
         }
         .message-row.user .message-bubble {
             background-color: var(--bubble-user);
-            border-bottom-right-radius: 2px; /* Ponta de WhatsApp/Telegram */
+            border-bottom-right-radius: 2px;
         }
         
         /* Bolha da IA (Flutua para a Esquerda) */
@@ -115,10 +113,10 @@
         /* --- Avatares (Mantidos, mas fora da bolha) --- */
         .avatar-container {
             display: flex;
-            align-items: flex-end; /* Alinha o avatar com o texto de baixo */
+            align-items: flex-end; 
             width: 40px;
             flex-shrink: 0;
-            padding-bottom: 5px; /* Alinhamento visual */
+            padding-bottom: 5px; 
         }
         .message-row.user .avatar-container { order: 2; justify-content: flex-end; }
         .message-row.ai .avatar-container { order: 1; }
@@ -126,7 +124,7 @@
         .avatar {
             width: 30px;
             height: 30px;
-            border-radius: 50%; /* Agora circular */
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -253,6 +251,15 @@
             0%, 80%, 100% { transform: scale(0); }
             40% { transform: scale(1); }
         }
+
+        /* --- Ajustes para Mobile (Telas menores que 768px) --- */
+        @media (max-width: 768px) {
+            body { font-size: 15px; }
+            .message-row { padding: 8px 0; }
+            .message-content { gap: 1rem; }
+            .avatar { width: 28px; height: 28px; font-size: 13px; }
+            footer { padding: 1rem 1rem; }
+        }
     </style>
 </head>
 <body>
@@ -281,7 +288,8 @@
         const sendBtn = document.getElementById('send-btn');
 
         const API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        const SYSTEM_INSTRUCTION = "Você é Crisálida, uma inteligência artificial avançada e profissional. Seu criador é Redzin. Responda sempre em português, com formatação Markdown clara (use negrito para ênfase, listas para tópicos e blocos de código). Seja objetiva, séria e prestativa. Nunca diga que é da OpenAI. Prompt do usuário: ";
+        // INSTRUÇÃO MINIMALISTA: Foca apenas na identidade para não interferir nas respostas
+        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Use formatação Markdown (negrito, listas, código). Responda de forma completa à seguinte pergunta: ";
 
         // Auto-resize do textarea
         userInput.addEventListener('input', function() {
@@ -354,7 +362,7 @@
                 <div class="message-content">
                     ${isAi ? 
                         `<div class="avatar-container"><div class="avatar ai-icon">C</div></div>` : 
-                        `<div class="avatar-container" style="width: 0;"></div>` /* Espaço vazio para alinhar */
+                        `<div class="avatar-container" style="width: 0;"></div>`
                     }
                     
                     <div class="message-bubble">
@@ -393,6 +401,15 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
             return id;
         }
+        
+        // Mensagem de boas vindas inicial para preencher o Empty State na primeira carga
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verifica se não há mensagens (além do empty state, que é flex:1)
+            if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
+                emptyState.style.display = 'none';
+                addMessage('ai', "Olá. Eu sou a **Crisálida**, uma inteligência artificial criada por Redzin. Estou pronta para processar suas solicitações. Como posso ser útil hoje?");
+            }
+        });
     </script>
 </body>
 </html>
