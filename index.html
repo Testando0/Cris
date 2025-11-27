@@ -139,7 +139,7 @@
         .message-content p { margin-bottom: 10px; }
         .message-content p:last-child { margin-bottom: 0; }
         .message-content a { color: #5B8FF9; text-decoration: none; } 
-        .message-content audio { background-color: #111111; border-radius: 8px; } /* Cor do player no Dark Mode */
+        .message-content audio { background-color: #111111; border-radius: 8px; }
 
         /* --- Input e Footer --- */
         footer {
@@ -275,8 +275,8 @@
 
         // URLs das APIs
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        const SEARCH_API_URL = "https://delirius-apiofc.vercel.app/search/ytsearch?q="; // URL de busca de vídeo
-        const DOWNLOAD_API_URL = "https://delirius-apiofc.vercel.app/download/ytmp3?url="; // URL de download MP3
+        const SEARCH_API_URL = "https://delirius-apiofc.vercel.app/search/ytsearch?q="; 
+        const DOWNLOAD_API_URL = "https://delirius-apiofc.vercel.app/download/ytmp3?url="; 
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
@@ -307,7 +307,6 @@
             div.className = `message-row ${sender}`;
             const isAi = sender === 'ai';
             
-            // Usa marked.parse (Markdown) apenas para as respostas da IA
             const contentHtml = isAi ? marked.parse(text) : text.replace(/\n/g, '<br>');
 
             div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
@@ -326,7 +325,6 @@
             const quality = data.download.Qualidade || 'Desconhecida';
             const size = data.download.tamanho || '0 MB';
             const downloadUrl = data.download.url;
-            // Cria um nome de arquivo limpo para o download
             const filename = title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3';
 
             const contentHtml = `
@@ -382,10 +380,11 @@
             if(emptyState) emptyState.style.display = 'none';
             
             const lowerText = text.toLowerCase();
+            
+            // Variável para armazenar a mensagem de erro
+            let errorMessage = null;
 
-            // =========================================================================
-            // 1. MECANISMO DE BYPASS E INTERCEPTAÇÃO DE IDENTIDADE
-            // =========================================================================
+            // LÓGICA DE BYPASS DE IDENTIDADE (MANTIDA)
             const identityKeywords = [
                 "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
                 "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
@@ -406,9 +405,7 @@
                 return; 
             }
             
-            // =========================================================================
-            // 2. LÓGICA DE BUSCA E DOWNLOAD DE MÚSICA ("play [música]")
-            // =========================================================================
+            // LÓGICA DE BUSCA E DOWNLOAD DE MÚSICA ("play [música]")
             const musicCommand = lowerText.startsWith("play ");
             if (musicCommand) {
                 addMessage('user', text);
@@ -424,37 +421,48 @@
                 const musicQuery = text.substring(5).trim();
 
                 try {
-                    // Passo 1: Buscar o vídeo no YouTube
-                    // *** CORREÇÃO APLICADA AQUI: USANDO SEARCH_API_URL ***
-                    const searchReq = await fetch(SEARCH_API_URL + encodeURIComponent(musicQuery));
-                    const searchRes = await searchReq.json();
-
-                    if (!searchRes.status || !searchRes.data || searchRes.data.length === 0) {
-                        document.getElementById(loadingId).remove();
-                        addMessage('ai', `❌ Não encontrei nenhum vídeo para a pesquisa: **${musicQuery}**.`);
-                        return;
+                    // 1. Busca do Vídeo
+                    const searchUrl = SEARCH_API_URL + encodeURIComponent(musicQuery);
+                    let searchRes;
+                    try {
+                        const searchReq = await fetch(searchUrl);
+                        searchRes = await searchReq.json();
+                    } catch (e) {
+                        errorMessage = `Falha na requisição de busca (Erro de Conexão ou JSON inválido). Verifique a URL: ${searchUrl}`;
+                        throw new Error(errorMessage);
+                    }
+                    
+                    if (!searchRes.status || !searchRes.data || searchRes.data.length === 0 || !searchRes.data[0].url) {
+                        errorMessage = `A API de busca não encontrou resultados ou o formato de resposta (status/data/url) não é válido.`;
+                        throw new Error(errorMessage);
                     }
 
-                    const videoUrl = searchRes.data[0].url; // Pega o URL do primeiro resultado
+                    const videoUrl = searchRes.data[0].url; 
                     
-                    // Passo 2: Baixar MP3 usando o URL
-                    const downloadReq = await fetch(DOWNLOAD_API_URL + encodeURIComponent(videoUrl));
-                    const downloadRes = await downloadReq.json();
+                    // 2. Download MP3
+                    const downloadUrl = DOWNLOAD_API_URL + encodeURIComponent(videoUrl);
+                    let downloadRes;
+                    try {
+                        const downloadReq = await fetch(downloadUrl);
+                        downloadRes = await downloadReq.json();
+                    } catch (e) {
+                        errorMessage = `Falha na requisição de download (Erro de Conexão ou JSON inválido). URL: ${downloadUrl}`;
+                        throw new Error(errorMessage);
+                    }
 
-                    document.getElementById(loadingId).remove();
-                    
                     if (!downloadRes.status || !downloadRes.dados || !downloadRes.dados.download || !downloadRes.dados.download.url) {
-                        addMessage('ai', `❌ Encontrei o vídeo, mas houve um erro ao processar o download MP3.`);
-                        return;
+                        errorMessage = `A API de download não retornou o link final (status/dados.download.url inválido).`;
+                        throw new Error(errorMessage);
                     }
                     
-                    // Passo 3: Exibir o resultado formatado
+                    // 3. Sucesso: Exibir o resultado
+                    document.getElementById(loadingId).remove();
                     addMusicMessage(downloadRes.dados);
 
                 } catch (err) {
+                    // Captura e exibe o erro na tela
                     document.getElementById(loadingId).remove();
-                    addMessage('ai', "**Erro:** Falha na comunicação com a API de música. Verifique a URL e o status da API.");
-                    console.error(err);
+                    addMessage('ai', `**❌ Erro na Música:** Não foi possível completar o pedido. \n\n**Detalhe:** ${errorMessage || err.message || "Erro de rede desconhecido."}`);
                 } finally {
                     userInput.disabled = false;
                     userInput.focus();
@@ -463,9 +471,7 @@
             }
 
 
-            // =========================================================================
-            // 3. LÓGICA DE CHAT NORMAL (CHAMADA À API EXTERNA)
-            // =========================================================================
+            // LÓGICA DE CHAT NORMAL (CHAMADA À API EXTERNA)
             addMessage('user', text);
 
             // UI Updates
@@ -493,7 +499,6 @@
             } catch (err) {
                 document.getElementById(loadingId).remove();
                 addMessage('ai', "**Erro:** Falha na conexão com Crisálida. Verifique a URL da API.");
-                console.error(err);
             } finally {
                 userInput.disabled = false;
                 userInput.focus();
