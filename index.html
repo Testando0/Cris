@@ -252,10 +252,8 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // URL da API de Chat
+        // URLs das APIs
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        
-        // URL da API de Música original
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
@@ -287,7 +285,6 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Função de Renderização da Música com Estrutura Vreden
         function addMusicMessage(data) {
             const div = document.createElement('div');
             div.className = 'message-row ai';
@@ -349,28 +346,46 @@
             return id;
         }
 
+        // NOVO: Função para limpar imediatamente o input e desabilitar a entrada
+        function prepareInputForSending() {
+            userInput.value = '';
+            userInput.style.height = '24px';
+            sendBtn.classList.remove('active');
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+        }
+
+        // NOVO: Função para reabilitar a entrada (executada no finally)
+        function resetInput() {
+            userInput.value = '';
+            userInput.style.height = '24px';
+            sendBtn.classList.remove('active');
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
+        }
+
         async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
             if(emptyState) emptyState.style.display = 'none';
+            
+            // 1. AÇÃO IMEDIATA: Adicionar a mensagem do usuário e LIMPAR A ENTRADA
+            addMessage('user', text);
+            prepareInputForSending(); 
+
             const lowerText = text.toLowerCase();
             let errorMessage = null;
 
-            // --- BYPASS DE IDENTIDADE ---
-            const identityKeywords = [
-                "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
-                "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
-            ];
+            // --- LÓGICA DE BYPASS (IDENTIDADE E GEMINI) ---
+            const identityKeywords = ["qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é", "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"];
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
-                addMessage('user', text); 
                 addMessage('ai', "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**."); 
                 resetInput();
                 return; 
             }
-            
             const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
             if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
-                addMessage('user', text); 
                 addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3."); 
                 resetInput();
                 return; 
@@ -378,17 +393,12 @@
 
             // --- PLAY MUSIC LOGIC (COM PROXY CORS) ---
             if (lowerText.startsWith("play ")) {
-                addMessage('user', text);
-                toggleInput(true);
+                
                 const loadingId = addLoading();
                 const musicQuery = text.substring(5).trim();
 
                 try {
-                    // 1. Construímos a URL original da API
                     const originalUrl = `${MUSIC_API_BASE_URL}?query=${encodeURIComponent(musicQuery)}`;
-                    
-                    // 2. Passamos ela por um PROXY CORS (corsproxy.io)
-                    // Isso engana o navegador e permite a conexão.
                     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
 
                     const musicReq = await fetch(proxyUrl);
@@ -397,33 +407,28 @@
                     
                     const musicRes = await musicReq.json();
 
-                    // Validação estrita baseada na estrutura do JSON:
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
-                        if (musicQuery === '') {
-                             errorMessage = `Digite o nome da música. Ex: **play Faded**`;
-                        } else {
-                            console.log("JSON Incorreto:", musicRes);
-                            errorMessage = `A música foi encontrada, mas o link de download não estava onde esperávamos.`;
-                        }
+                        errorMessage = (musicQuery === '') ? `Digite o nome da música. Ex: **play Faded**` : `A música foi encontrada, mas o link de download não estava onde esperávamos.`;
                         throw new Error(errorMessage);
                     }
                     
                     document.getElementById(loadingId).remove();
-                    // Sucesso!
                     addMusicMessage(musicRes.result);
 
                 } catch (err) {
                     document.getElementById(loadingId).remove();
-                    addMessage('ai', `**❌ Erro na Música:** ${err.message}`);
+                    const errorMsg = err.message === 'Failed to fetch' 
+                        ? "Erro de conexão (CORS). Tente novamente." 
+                        : err.message;
+                        
+                    addMessage('ai', `**❌ Erro na Música:** ${errorMsg}`);
                 } finally {
-                    toggleInput(false);
+                    resetInput(); // Reabilita a entrada no final do processo
                     return; 
                 }
             }
 
             // --- CHAT NORMAL LOGIC ---
-            addMessage('user', text);
-            toggleInput(true);
             const loadingId = addLoading();
 
             try {
@@ -442,27 +447,7 @@
                 document.getElementById(loadingId).remove();
                 addMessage('ai', `**Erro:** Falha na conexão com Crisálida. (${err.message})`);
             } finally {
-                toggleInput(false);
-            }
-        }
-
-        function resetInput() {
-            userInput.value = '';
-            userInput.style.height = '24px';
-            sendBtn.classList.remove('active');
-            sendBtn.disabled = false;
-            userInput.disabled = false;
-            userInput.focus();
-        }
-
-        function toggleInput(disable) {
-            userInput.disabled = disable;
-            sendBtn.disabled = disable;
-            if(!disable) {
-                userInput.value = '';
-                userInput.style.height = '24px';
-                sendBtn.classList.remove('active');
-                userInput.focus();
+                resetInput(); // Reabilita a entrada no final do processo
             }
         }
 
