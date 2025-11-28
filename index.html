@@ -256,7 +256,8 @@
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
-        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
+        // NOVO: Instrução de Sistema mais forte para evitar que a IA revele o modelo subjacente.
+        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida.";
         
         userInput.addEventListener('input', function() {
             this.style.height = '24px'; 
@@ -346,7 +347,6 @@
             return id;
         }
 
-        // NOVO: Função para limpar imediatamente o input e desabilitar a entrada
         function prepareInputForSending() {
             userInput.value = '';
             userInput.style.height = '24px';
@@ -355,7 +355,6 @@
             userInput.disabled = true;
         }
 
-        // NOVO: Função para reabilitar a entrada (executada no finally)
         function resetInput() {
             userInput.value = '';
             userInput.style.height = '24px';
@@ -384,6 +383,8 @@
                 resetInput();
                 return; 
             }
+            
+            // Manteve a lógica de bypass para o termo 'Gemini' para uma resposta controlada
             const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
             if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
                 addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3."); 
@@ -432,6 +433,7 @@
             const loadingId = addLoading();
 
             try {
+                // A instrução AGORA É MAIS FORTE, forçando a identidade
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
                 const req = await fetch(CHAT_API_URL + encodeURIComponent(finalInstruction));
                 
