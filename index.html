@@ -252,8 +252,10 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // URLs das APIs
+        // URL da API de Chat
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
+        
+        // URL da API de Música original
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
@@ -285,25 +287,23 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Função ajustada para ler a estrutura EXATA do JSON fornecido
+        // Função de Renderização da Música com Estrutura Vreden
         function addMusicMessage(data) {
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
             // 1. Extraindo Metadados (result.metadata)
-            // JSON: "metadata": { "title": "...", "timestamp": "3:07", "views": 167243327 }
             const meta = data.metadata || {};
             const title = meta.title || 'Música Desconhecida';
             const duration = meta.timestamp || 'Duração Desconhecida';
             const views = meta.views ? String(meta.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
             
             // 2. Extraindo URL de Download (result.download)
-            // JSON: "download": { "url": "https://..." }
             const download = data.download || {};
             const downloadUrl = download.url; 
             
             if (!downloadUrl) {
-                 addMessage('ai', `❌ Erro de Leitura: Não foi possível encontrar a URL de download no JSON.`);
+                 addMessage('ai', `❌ Erro: O link de download não foi encontrado na resposta da API.`);
                  return;
             }
 
@@ -376,7 +376,7 @@
                 return; 
             }
 
-            // --- PLAY MUSIC LOGIC ---
+            // --- PLAY MUSIC LOGIC (COM PROXY CORS) ---
             if (lowerText.startsWith("play ")) {
                 addMessage('user', text);
                 toggleInput(true);
@@ -384,42 +384,37 @@
                 const musicQuery = text.substring(5).trim();
 
                 try {
-                    // Monta a URL direta da API (Sem Proxy)
-                    const musicSearchUrl = `${MUSIC_API_BASE_URL}?query=${encodeURIComponent(musicQuery)}`;
+                    // 1. Construímos a URL original da API
+                    const originalUrl = `${MUSIC_API_BASE_URL}?query=${encodeURIComponent(musicQuery)}`;
+                    
+                    // 2. Passamos ela por um PROXY CORS (corsproxy.io)
+                    // Isso engana o navegador e permite a conexão.
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
 
-                    const musicReq = await fetch(musicSearchUrl);
+                    const musicReq = await fetch(proxyUrl);
                     
                     if (!musicReq.ok) throw new Error(`Erro HTTP: ${musicReq.status}`);
                     
                     const musicRes = await musicReq.json();
 
                     // Validação estrita baseada na estrutura do JSON:
-                    // 1. status deve ser true
-                    // 2. result deve existir
-                    // 3. result.download.url deve existir
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
                         if (musicQuery === '') {
                              errorMessage = `Digite o nome da música. Ex: **play Faded**`;
                         } else {
-                            // Debug: Loga o que veio se falhar
-                            console.log("Erro na estrutura:", musicRes);
-                            errorMessage = `A música foi encontrada, mas o link de download não estava onde esperávamos no JSON (result.download.url).`;
+                            console.log("JSON Incorreto:", musicRes);
+                            errorMessage = `A música foi encontrada, mas o link de download não estava onde esperávamos.`;
                         }
                         throw new Error(errorMessage);
                     }
                     
                     document.getElementById(loadingId).remove();
-                    // Passa SOMENTE o objeto 'result' para a função de renderização
+                    // Sucesso!
                     addMusicMessage(musicRes.result);
 
                 } catch (err) {
                     document.getElementById(loadingId).remove();
-                    // Se der erro de fetch aqui, é provável que seja CORS
-                    const errorMsg = err.message === 'Failed to fetch' 
-                        ? "Erro de conexão (CORS). Se você está testando localmente, use uma extensão de CORS ou um Proxy." 
-                        : err.message;
-                        
-                    addMessage('ai', `**❌ Erro na Música:** ${errorMsg}`);
+                    addMessage('ai', `**❌ Erro na Música:** ${err.message}`);
                 } finally {
                     toggleInput(false);
                     return; 
