@@ -279,11 +279,8 @@
         // URLs das APIs de Chat
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         
-        // BASE DA API DE MÚSICA DE DAVID CYRIL (SEM OS PARÂMETROS)
-        const MUSIC_API_BASE_URL = "https://apis.davidcyriltech.my.id/play";
-        
-        // CHAVE DE API: SUBSTITUA 'REDZ' PELA SUA CHAVE REAL
-        const API_KEY_DAVIDCYRIL = "REDZ"; 
+        // BASE DA API DE MÚSICA DE VREDEN (ATUALIZADA)
+        const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
@@ -327,10 +324,11 @@
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
-            const title = data.title || 'Música Desconhecida';
-            const duration = data.duration || 'Duração Desconhecida';
-            const views = data.views ? String(data.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
-            const downloadUrl = data.download_url;
+            // Extração de dados da API Vreden (Estrutura aninhada)
+            const title = data.metadata.title || 'Música Desconhecida';
+            const duration = data.metadata.timestamp || 'Duração Desconhecida'; // Duração em formato string (e.g., "3:07")
+            const views = data.metadata.views ? String(data.metadata.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
+            const downloadUrl = data.download.url; // Acessando o URL aninhado
             
             if (!downloadUrl) {
                  addMessage('ai', `❌ Não foi possível extrair o URL de download. O resultado estava incompleto.`);
@@ -394,7 +392,7 @@
             
             let errorMessage = null;
 
-            // LÓGICA DE BYPASS DE IDENTIDADE
+            // --- LÓGICA DE BYPASS DE IDENTIDADE (REDZIN) ---
             const identityKeywords = [
                 "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
                 "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
@@ -415,6 +413,27 @@
                 return; 
             }
             
+            // --- NOVA LÓGICA DE BYPASS: GEMINI ---
+            const geminiKeywords = [
+                "gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"
+            ];
+            
+            if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
+                const fixedAnswer = "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3.";
+                addMessage('user', text); 
+                addMessage('ai', fixedAnswer); 
+                
+                // Limpeza e retorno
+                userInput.value = '';
+                userInput.style.height = '24px';
+                sendBtn.classList.remove('active');
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+                return; 
+            }
+
+
             // LÓGICA DE BUSCA E DOWNLOAD DE MÚSICA ("play [música]")
             const musicCommand = lowerText.startsWith("play ");
             if (musicCommand) {
@@ -431,10 +450,9 @@
                 const musicQuery = text.substring(5).trim();
 
                 try {
-                    // 1. Construção da Requisição (Ordem Corrigida)
+                    // 1. Construção da Requisição
                     const encodedQuery = encodeURIComponent(musicQuery);
-                    
-                    const musicSearchUrl = `${MUSIC_API_BASE_URL}?query=${encodedQuery}&apikey=${API_KEY_DAVIDCYRIL}`;
+                    const musicSearchUrl = `${MUSIC_API_BASE_URL}?query=${encodedQuery}`;
 
                     let musicRes;
                     
@@ -446,13 +464,13 @@
                         throw new Error(errorMessage);
                     }
                     
-                    // 2. Verificação de Sucesso da Resposta
-                    if (musicRes.status !== true || !musicRes.result || !musicRes.result.download_url) {
+                    // 2. Verificação de Sucesso da Resposta (Nova estrutura)
+                    if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
                         
                         if (musicQuery === '') {
                              errorMessage = `O comando **play** deve ser seguido pelo nome da música. Tente: **play Faded**`;
                         } else {
-                            errorMessage = `A API retornou erro. O resultado ou o URL de download ('download_url') estão ausentes. (Verifique sua chave de API e a disponibilidade do servidor).`;
+                            errorMessage = `A API retornou erro. O resultado ou o URL de download ('result.download.url') estão ausentes.`;
                         }
 
                         throw new Error(errorMessage);
