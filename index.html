@@ -14,20 +14,12 @@
             --bg-color: #000000;
             --chat-width: 48rem; 
             --text-primary: #ECECF1;
-            
-            /* Cores Estilo Dark Mode Personalizado (Cinza) */
             --msg-user-color: #ffffff; 
             --msg-ai-color: #ECECF1; 
-            
-            /* Bolha do Usuário (Cinza Chumbo Escuro) */
             --msg-user-bg-start: #444444; 
             --msg-user-bg-end: #333333;   
-            
-            /* Bolha da IA (iOS Dark Gray - Cinza escuro) */
             --msg-ai-bg: #252525; 
             --footer-height-buffer: 200px; 
-            
-            /* Nova variável para o botão de download (Cinza de Ação) */
             --action-gray: #444444;
         }
 
@@ -45,13 +37,11 @@
             line-height: 1.5;
         }
 
-        /* --- Scrollbar Minimalista --- */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-        /* --- Chat Container --- */
         main {
             flex: 1;
             overflow-y: auto;
@@ -63,14 +53,12 @@
             align-items: center; 
         }
 
-        /* --- Linha da Mensagem (Container) */
         .message-row {
             width: 100%;
             max-width: var(--chat-width);
             padding: 4px 10px; 
         }
 
-        /* --- Conteúdo da Mensagem (A "bolha" iOS) --- */
         .message-content {
             padding: 10px 14px; 
             border-radius: 18px; 
@@ -81,27 +69,20 @@
             font-weight: 400;
         }
         
-        /* --- CRISÁLIDA (IA) - ESQUERDA (iOS Dark Gray) --- */
-        .message-row.ai {
-            text-align: left;
-        }
+        .message-row.ai { text-align: left; }
         .message-row.ai .message-content {
             background-color: var(--msg-ai-bg);
             color: var(--msg-ai-color);
             border-top-left-radius: 6px; 
         }
         
-        /* --- USUÁRIO - DIREITA (Cinza Chumbo) --- */
-        .message-row.user {
-            text-align: right;
-        }
+        .message-row.user { text-align: right; }
         .message-row.user .message-content {
             background: linear-gradient(135deg, var(--msg-user-bg-start), var(--msg-user-bg-end));
             color: var(--msg-user-color);
             border-top-right-radius: 6px; 
         }
         
-        /* --- Empty State --- */
         .empty-state {
             flex: 1;
             display: flex;
@@ -117,9 +98,7 @@
         .empty-state h1 { font-size: 2rem; font-weight: 600; color: #fff; margin-bottom: 10px; }
         .empty-state p { font-size: 0.9rem; color: #666; }
 
-        /* --- Formatação Markdown DENTRO do Conteúdo --- */
         .message-content strong { font-weight: 600; color: inherit; }
-        
         .message-content code { 
             background: rgba(255, 255, 255, 0.1); 
             padding: 2px 4px; 
@@ -144,7 +123,6 @@
         .message-content a { color: #5B8FF9; text-decoration: none; } 
         .message-content audio { background-color: #111111; border-radius: 8px; }
 
-        /* --- Input e Footer --- */
         footer {
             position: fixed;
             bottom: 0;
@@ -217,7 +195,6 @@
             text-align: center;
         }
 
-        /* --- Loading Animation --- */
         .typing-dots {
             display: flex;
             gap: 4px;
@@ -238,7 +215,6 @@
             40% { transform: scale(1); }
         }
 
-        /* --- Ajustes para Mobile (Telas menores que 768px) --- */
         @media (max-width: 768px) {
             body { font-size: 15px; }
             .message-row { padding: 4px 0; }
@@ -276,25 +252,20 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // URLs das APIs de Chat
+        // URLs das APIs
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        
-        // BASE DA API DE MÚSICA DE VREDEN (ATUALIZADA)
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin.";
         
-        // Auto-resize do textarea
         userInput.addEventListener('input', function() {
             this.style.height = '24px'; 
             this.style.height = (this.scrollHeight) + 'px';
-            
             const hasText = this.value.trim().length > 0;
             sendBtn.classList.toggle('active', hasText);
             sendBtn.disabled = !hasText;
         });
 
-        // Enviar com Enter
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -304,34 +275,35 @@
 
         sendBtn.addEventListener('click', sendMessage);
 
-
-        // Função para adicionar a mensagem normal de chat (IA ou Usuário)
         function addMessage(sender, text) {
             const div = document.createElement('div');
             div.className = `message-row ${sender}`;
             const isAi = sender === 'ai';
-            
             const contentHtml = isAi ? marked.parse(text) : text.replace(/\n/g, '<br>');
-
             div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
-            
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Função para adicionar a mensagem de música com player e botão de download (COR RIGIDA PARA CINZA)
+        // Função ajustada para ler a estrutura EXATA do JSON fornecido
         function addMusicMessage(data) {
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
-            // Extração de dados da API Vreden (Estrutura aninhada)
-            const title = data.metadata.title || 'Música Desconhecida';
-            const duration = data.metadata.timestamp || 'Duração Desconhecida'; // Duração em formato string (e.g., "3:07")
-            const views = data.metadata.views ? String(data.metadata.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
-            const downloadUrl = data.download.url; // Acessando o URL aninhado
+            // 1. Extraindo Metadados (result.metadata)
+            // JSON: "metadata": { "title": "...", "timestamp": "3:07", "views": 167243327 }
+            const meta = data.metadata || {};
+            const title = meta.title || 'Música Desconhecida';
+            const duration = meta.timestamp || 'Duração Desconhecida';
+            const views = meta.views ? String(meta.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
+            
+            // 2. Extraindo URL de Download (result.download)
+            // JSON: "download": { "url": "https://..." }
+            const download = data.download || {};
+            const downloadUrl = download.url; 
             
             if (!downloadUrl) {
-                 addMessage('ai', `❌ Não foi possível extrair o URL de download. O resultado estava incompleto.`);
+                 addMessage('ai', `❌ Erro de Leitura: Não foi possível encontrar a URL de download no JSON.`);
                  return;
             }
 
@@ -354,7 +326,6 @@
             `;
 
             div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
-            
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
@@ -364,8 +335,7 @@
             const div = document.createElement('div');
             div.className = 'message-row ai';
             div.id = id;
-            
-            const innerContent = `
+            div.innerHTML = `
                 <div class="message-content" style="display: flex; align-items: center; width: 60px;">
                     <div class="typing-dots">
                         <div class="dot"></div>
@@ -374,9 +344,6 @@
                     </div>
                 </div>
             `;
-            
-            div.innerHTML = innerContent;
-            
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
             return id;
@@ -385,153 +352,125 @@
         async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
-
             if(emptyState) emptyState.style.display = 'none';
-            
             const lowerText = text.toLowerCase();
-            
             let errorMessage = null;
 
-            // --- LÓGICA DE BYPASS DE IDENTIDADE (REDZIN) ---
+            // --- BYPASS DE IDENTIDADE ---
             const identityKeywords = [
                 "qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é",
                 "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"
             ];
-
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
-                const fixedAnswer = "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**.";
                 addMessage('user', text); 
-                addMessage('ai', fixedAnswer); 
-                
-                // Limpeza e retorno
-                userInput.value = '';
-                userInput.style.height = '24px';
-                sendBtn.classList.remove('active');
-                sendBtn.disabled = false;
-                userInput.disabled = false;
-                userInput.focus();
+                addMessage('ai', "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**."); 
+                resetInput();
                 return; 
             }
             
-            // --- NOVA LÓGICA DE BYPASS: GEMINI ---
-            const geminiKeywords = [
-                "gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"
-            ];
-            
+            const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
             if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
-                const fixedAnswer = "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3.";
                 addMessage('user', text); 
-                addMessage('ai', fixedAnswer); 
-                
-                // Limpeza e retorno
-                userInput.value = '';
-                userInput.style.height = '24px';
-                sendBtn.classList.remove('active');
-                sendBtn.disabled = false;
-                userInput.disabled = false;
-                userInput.focus();
+                addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3."); 
+                resetInput();
                 return; 
             }
 
-
-            // LÓGICA DE BUSCA E DOWNLOAD DE MÚSICA ("play [música]")
-            const musicCommand = lowerText.startsWith("play ");
-            if (musicCommand) {
+            // --- PLAY MUSIC LOGIC ---
+            if (lowerText.startsWith("play ")) {
                 addMessage('user', text);
-                
-                // UI Updates
-                userInput.value = '';
-                userInput.style.height = '24px';
-                sendBtn.classList.remove('active');
-                sendBtn.disabled = true;
-                userInput.disabled = true; 
-
+                toggleInput(true);
                 const loadingId = addLoading();
                 const musicQuery = text.substring(5).trim();
 
                 try {
-                    // 1. Construção da Requisição
-                    const encodedQuery = encodeURIComponent(musicQuery);
-                    const musicSearchUrl = `${MUSIC_API_BASE_URL}?query=${encodedQuery}`;
+                    // Monta a URL direta da API (Sem Proxy)
+                    const musicSearchUrl = `${MUSIC_API_BASE_URL}?query=${encodeURIComponent(musicQuery)}`;
 
-                    let musicRes;
+                    const musicReq = await fetch(musicSearchUrl);
                     
-                    try {
-                        const musicReq = await fetch(musicSearchUrl);
-                        musicRes = await musicReq.json();
-                    } catch (e) {
-                        errorMessage = `Falha na requisição de música (Erro de Conexão ou JSON inválido).`;
-                        throw new Error(errorMessage);
-                    }
+                    if (!musicReq.ok) throw new Error(`Erro HTTP: ${musicReq.status}`);
                     
-                    // 2. Verificação de Sucesso da Resposta (Nova estrutura)
+                    const musicRes = await musicReq.json();
+
+                    // Validação estrita baseada na estrutura do JSON:
+                    // 1. status deve ser true
+                    // 2. result deve existir
+                    // 3. result.download.url deve existir
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
-                        
                         if (musicQuery === '') {
-                             errorMessage = `O comando **play** deve ser seguido pelo nome da música. Tente: **play Faded**`;
+                             errorMessage = `Digite o nome da música. Ex: **play Faded**`;
                         } else {
-                            errorMessage = `A API retornou erro. O resultado ou o URL de download ('result.download.url') estão ausentes.`;
+                            // Debug: Loga o que veio se falhar
+                            console.log("Erro na estrutura:", musicRes);
+                            errorMessage = `A música foi encontrada, mas o link de download não estava onde esperávamos no JSON (result.download.url).`;
                         }
-
                         throw new Error(errorMessage);
                     }
                     
-                    // 3. Sucesso: Exibir o resultado
                     document.getElementById(loadingId).remove();
+                    // Passa SOMENTE o objeto 'result' para a função de renderização
                     addMusicMessage(musicRes.result);
 
                 } catch (err) {
-                    // Captura e exibe o erro na tela
                     document.getElementById(loadingId).remove();
-                    addMessage('ai', `**❌ Erro na Música:** Não foi possível completar o pedido. \n\n**Detalhe:** ${errorMessage || err.message || "Erro desconhecido. Verifique se digitou o nome da música corretamente."}`);
+                    // Se der erro de fetch aqui, é provável que seja CORS
+                    const errorMsg = err.message === 'Failed to fetch' 
+                        ? "Erro de conexão (CORS). Se você está testando localmente, use uma extensão de CORS ou um Proxy." 
+                        : err.message;
+                        
+                    addMessage('ai', `**❌ Erro na Música:** ${errorMsg}`);
                 } finally {
-                    userInput.disabled = false;
-                    userInput.focus();
-                    sendBtn.disabled = userInput.value.trim().length === 0;
-                    sendBtn.classList.toggle('active', !sendBtn.disabled);
+                    toggleInput(false);
                     return; 
                 }
             }
 
-
-            // LÓGICA DE CHAT NORMAL (CHAMADA À API EXTERNA)
+            // --- CHAT NORMAL LOGIC ---
             addMessage('user', text);
-
-            // UI Updates
-            userInput.value = '';
-            userInput.style.height = '24px';
-            sendBtn.classList.remove('active');
-            sendBtn.disabled = true;
-            userInput.disabled = true; 
-
+            toggleInput(true);
             const loadingId = addLoading();
 
             try {
-                const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda à seguinte pergunta: ${text}`;
-                const query = encodeURIComponent(finalInstruction);
+                const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
+                const req = await fetch(CHAT_API_URL + encodeURIComponent(finalInstruction));
                 
-                const req = await fetch(CHAT_API_URL + query);
-                const res = await req.json();
+                if (!req.ok) throw new Error(`Erro HTTP: ${req.status}`);
 
+                const res = await req.json();
                 document.getElementById(loadingId).remove();
 
-                const answer = res.data || res.answer || res.response || "Não foi possível obter resposta. Erro na API.";
-                
+                const answer = res.data || res.answer || res.response || res.result || "Sem resposta.";
                 addMessage('ai', answer);
 
             } catch (err) {
                 document.getElementById(loadingId).remove();
-                addMessage('ai', "**Erro:** Falha na conexão com Crisálida. Verifique a URL da API.");
+                addMessage('ai', `**Erro:** Falha na conexão com Crisálida. (${err.message})`);
             } finally {
-                userInput.disabled = false;
-                userInput.focus();
-                sendBtn.disabled = userInput.value.trim().length === 0;
-                sendBtn.classList.toggle('active', !sendBtn.disabled);
+                toggleInput(false);
             }
         }
 
-        
-        // Mensagem de boas vindas inicial
+        function resetInput() {
+            userInput.value = '';
+            userInput.style.height = '24px';
+            sendBtn.classList.remove('active');
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
+        }
+
+        function toggleInput(disable) {
+            userInput.disabled = disable;
+            sendBtn.disabled = disable;
+            if(!disable) {
+                userInput.value = '';
+                userInput.style.height = '24px';
+                sendBtn.classList.remove('active');
+                userInput.focus();
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
