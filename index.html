@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crisálida | Redzin</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts2.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
@@ -65,8 +67,12 @@
             max-width: 75%; 
             display: inline-block; 
             word-wrap: break-word; 
-            box-shadow: 0 1px 1px rgba(0,0,0,0.1); 
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); /* Sombra ajustada */
             font-weight: 400;
+            
+            /* CORREÇÃO 2: Suavização de fonte para evitar serrilhado no gradiente */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
         .message-row.ai { text-align: left; }
@@ -256,7 +262,7 @@
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
-        // Instrução de Sistema mais forte
+        // Instrução de Sistema
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida.";
         
         userInput.addEventListener('input', function() {
@@ -290,13 +296,11 @@
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
-            // 1. Extraindo Metadados (result.metadata)
             const meta = data.metadata || {};
             const title = meta.title || 'Música Desconhecida';
             const duration = meta.timestamp || 'Duração Desconhecida';
             const views = meta.views ? String(meta.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
             
-            // 2. Extraindo URL de Download (result.download)
             const download = data.download || {};
             const downloadUrl = download.url; 
             
@@ -369,14 +373,12 @@
             if (!text) return;
             if(emptyState) emptyState.style.display = 'none';
             
-            // 1. AÇÃO IMEDIATA: Adicionar a mensagem do usuário e LIMPAR A ENTRADA
             addMessage('user', text);
             prepareInputForSending(); 
 
             const lowerText = text.toLowerCase();
             let errorMessage = null;
 
-            // --- LÓGICA DE BYPASS (IDENTIDADE E GEMINI) ---
             const identityKeywords = ["qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é", "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"];
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
                 addMessage('ai', "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**."); 
@@ -384,7 +386,6 @@
                 return; 
             }
             
-            // Manteve a lógica de bypass para o termo 'Gemini' para uma resposta controlada
             const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
             if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
                 addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3."); 
@@ -392,7 +393,6 @@
                 return; 
             }
 
-            // --- PLAY MUSIC LOGIC (COM PROXY CORS) ---
             if (lowerText.startsWith("play ")) {
                 
                 const loadingId = addLoading();
@@ -424,16 +424,14 @@
                         
                     addMessage('ai', `**❌ Erro na Música:** ${errorMsg}`);
                 } finally {
-                    resetInput(); // Reabilita a entrada no final do processo
+                    resetInput();
                     return; 
                 }
             }
 
-            // --- CHAT NORMAL LOGIC ---
             const loadingId = addLoading();
 
             try {
-                // Envia a instrução de sistema FORTE para a API externa
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
                 const req = await fetch(CHAT_API_URL + encodeURIComponent(finalInstruction));
                 
@@ -444,12 +442,9 @@
 
                 let answer = res.data || res.answer || res.response || res.result || "Sem resposta.";
                 
-                // AQUI É A INTERCEPTAÇÃO E SUBSTITUIÇÃO FORÇADA
-                // Garante que mesmo que a API mencione "Gemini", isso será trocado por "Crisálida" antes de exibir.
                 answer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
                 answer = answer.replace(/como uma IA/gi, 'como Crisálida');
                 answer = answer.replace(/fui treinado/gi, 'fui programado');
-
 
                 addMessage('ai', answer);
 
@@ -457,7 +452,7 @@
                 document.getElementById(loadingId).remove();
                 addMessage('ai', `**Erro:** Falha na conexão com Crisálida. (${err.message})`);
             } finally {
-                resetInput(); // Reabilita a entrada no final do processo
+                resetInput();
             }
         }
 
