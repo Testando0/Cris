@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crisálida | Redzin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts2.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
@@ -256,7 +256,7 @@
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
-        // NOVO: Instrução de Sistema mais forte para evitar que a IA revele o modelo subjacente.
+        // Instrução de Sistema mais forte
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida.";
         
         userInput.addEventListener('input', function() {
@@ -433,7 +433,7 @@
             const loadingId = addLoading();
 
             try {
-                // A instrução AGORA É MAIS FORTE, forçando a identidade
+                // Envia a instrução de sistema FORTE para a API externa
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
                 const req = await fetch(CHAT_API_URL + encodeURIComponent(finalInstruction));
                 
@@ -442,7 +442,15 @@
                 const res = await req.json();
                 document.getElementById(loadingId).remove();
 
-                const answer = res.data || res.answer || res.response || res.result || "Sem resposta.";
+                let answer = res.data || res.answer || res.response || res.result || "Sem resposta.";
+                
+                // AQUI É A INTERCEPTAÇÃO E SUBSTITUIÇÃO FORÇADA
+                // Garante que mesmo que a API mencione "Gemini", isso será trocado por "Crisálida" antes de exibir.
+                answer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
+                answer = answer.replace(/como uma IA/gi, 'como Crisálida');
+                answer = answer.replace(/fui treinado/gi, 'fui programado');
+
+
                 addMessage('ai', answer);
 
             } catch (err) {
