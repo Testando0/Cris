@@ -469,3 +469,407 @@
     </script>
 </body>
 </html>
+            border-radius: 18px; 
+            max-width: 75%; 
+            display: block; 
+            word-wrap: break-word; 
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); 
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .message-row.ai { text-align: left; }
+        .message-row.ai .message-content {
+            background-color: var(--msg-ai-bg);
+            color: var(--msg-ai-color);
+            border-top-left-radius: 6px; 
+        }
+        
+        .message-row.user { 
+            display: flex; 
+            justify-content: flex-end; 
+        } 
+        
+        .message-row.user .message-content {
+            background: linear-gradient(135deg, var(--msg-user-bg-start), var(--msg-user-bg-end));
+            color: var(--msg-user-color);
+            border-top-right-radius: 6px; 
+        }
+        
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            opacity: 0.4;
+            user-select: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .empty-state h1 { font-size: 2rem; font-weight: 600; color: #fff; margin-bottom: 10px; }
+        .empty-state p { font-size: 0.9rem; color: #666; }
+
+        .message-content strong { font-weight: 600; color: inherit; }
+        .message-content code { 
+            background: rgba(255, 255, 255, 0.1); 
+            padding: 2px 4px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 0.9em; 
+            color: inherit; 
+            white-space: pre-wrap;
+        }
+        .message-content pre {
+            background: #000000;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 1px solid #333;
+        }
+        .message-content pre code { background: transparent; padding: 0; color: #fff; }
+        .message-content ul, .message-content ol { margin-left: 20px; margin-bottom: 10px; }
+        .message-content p { margin-bottom: 10px; }
+        .message-content p:last-child { margin-bottom: 0; }
+        .message-content a { color: #5B8FF9; text-decoration: none; } 
+        .message-content audio { background-color: #111111; border-radius: 8px; }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000000 30%); 
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .input-box {
+            width: 100%;
+            max-width: var(--chat-width);
+            background: #18181a;
+            border: 1px solid #333;
+            border-radius: 20px; 
+            padding: 10px 16px;
+            display: flex;
+            align-items: flex-end;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            resize: none;
+            max-height: 150px;
+            height: 24px;
+            padding: 0;
+            margin-right: 10px;
+            outline: none;
+            line-height: 1.5;
+            overflow-y: auto;
+        }
+
+        textarea::-webkit-scrollbar { display: none; }
+        button#send-btn {
+            background: transparent;
+            border: none;
+            color: #444;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%; 
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+
+        button#send-btn.active {
+            background-color: var(--msg-user-bg-end); 
+            color: white;
+        }
+        
+        button#send-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+        .disclaimer {
+            font-size: 11px;
+            color: #555;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 6px 0;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #666;
+            border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes pulse {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        @media (max-width: 768px) {
+            body { font-size: 15px; }
+            .message-row { padding: 4px 0; }
+            footer { padding: 1rem 1rem; }
+            :root { --footer-height-buffer: 180px; }
+            .input-box { border-radius: 25px; padding: 8px 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <main id="chat-container">
+        <div class="empty-state" id="empty-state">
+            <h1>Crisálida</h1>
+            <p>Criada por Redzin</p>
+            <p style="font-size: 0.9em; margin-top: 20px;">Use **play [nome da música]** para buscar e baixar MP3.</p>
+        </div>
+    </main>
+
+    <footer>
+        <div class="input-box">
+            <textarea id="user-input" rows="1" placeholder="Enviar mensagem para Crisálida..."></textarea>
+            <button id="send-btn" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 11L12 6L17 11M12 18V6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="disclaimer">Crisálida by Redzin. Use "play [música]" para baixar. As IAs podem cometer erros.</div>
+    </footer>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const emptyState = document.getElementById('empty-state');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // URLs das APIs
+        const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
+        const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
+        
+        // Instrução de Sistema
+        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida.";
+        
+        userInput.addEventListener('input', function() {
+            this.style.height = '24px'; 
+            this.style.height = (this.scrollHeight) + 'px';
+            const hasText = this.value.trim().length > 0;
+            sendBtn.classList.toggle('active', hasText);
+            sendBtn.disabled = !hasText;
+        });
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if(!sendBtn.disabled) sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        function addMessage(sender, text) {
+            const div = document.createElement('div');
+            div.className = `message-row ${sender}`;
+            const isAi = sender === 'ai';
+            const contentHtml = isAi ? marked.parse(text) : text.replace(/\n/g, '<br>');
+            div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addMusicMessage(data) {
+            const div = document.createElement('div');
+            div.className = 'message-row ai';
+            
+            const meta = data.metadata || {};
+            const title = meta.title || 'Música Desconhecida';
+            const duration = meta.timestamp || 'Duração Desconhecida';
+            const views = meta.views ? String(meta.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
+            
+            const download = data.download || {};
+            const downloadUrl = download.url; 
+            
+            if (!downloadUrl) {
+                 addMessage('ai', `❌ Erro: O link de download não foi encontrado na resposta da API.`);
+                 return;
+            }
+
+            const filename = title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3';
+
+            const contentHtml = `
+                <h3 style="margin-top: 0; font-weight: 600;">🎵 Música Encontrada: ${title}</h3>
+                <p><strong>Duração:</strong> ${duration} | <strong>Visualizações:</strong> ${views}</p>
+                <div style="margin-top: 15px; background-color: #18181a; padding: 10px; border-radius: 12px;">
+                    <audio controls preload="none" style="width: 100%; display: block; filter: none;">
+                        <source src="${downloadUrl}" type="audio/mp3">
+                        Seu navegador não suporta o player de áudio.
+                    </audio>
+                    <a href="${downloadUrl}" download="${filename}" 
+                       style="display: block; text-align: center; margin-top: 10px; padding: 10px; background-color: var(--action-gray); color: white; border-radius: 10px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                        ⬇️ Baixar MP3 Agora
+                    </a>
+                </div>
+                <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.7;">O link de download pode expirar após um tempo.</p>
+            `;
+
+            div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addLoading() {
+            const id = 'loader-' + Date.now();
+            const div = document.createElement('div');
+            div.className = 'message-row ai';
+            div.id = id;
+            div.innerHTML = `
+                <div class="message-content" style="display: flex; align-items: center; width: 60px;">
+                    <div class="typing-dots">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return id;
+        }
+
+        function prepareInputForSending() {
+            userInput.value = '';
+            userInput.style.height = '24px';
+            sendBtn.classList.remove('active');
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+        }
+
+        function resetInput() {
+            userInput.value = '';
+            userInput.style.height = '24px';
+            sendBtn.classList.remove('active');
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            if(emptyState) emptyState.style.display = 'none';
+            
+            addMessage('user', text);
+            prepareInputForSending(); 
+
+            const lowerText = text.toLowerCase();
+            let errorMessage = null;
+
+            const identityKeywords = ["qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é", "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"];
+            if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
+                addMessage('ai', "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**."); 
+                resetInput();
+                return; 
+            }
+            
+            const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
+            if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
+                addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3."); 
+                resetInput();
+                return; 
+            }
+
+            if (lowerText.startsWith("play ")) {
+                
+                const loadingId = addLoading();
+                const musicQuery = text.substring(5).trim();
+
+                try {
+                    const originalUrl = `${MUSIC_API_BASE_URL}?query=${encodeURIComponent(musicQuery)}`;
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
+
+                    const musicReq = await fetch(proxyUrl);
+                    
+                    if (!musicReq.ok) throw new Error(`Erro HTTP: ${musicReq.status}`);
+                    
+                    const musicRes = await musicReq.json();
+
+                    if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
+                        errorMessage = (musicQuery === '') ? `Digite o nome da música. Ex: **play Faded**` : `A música foi encontrada, mas o link de download não estava onde esperávamos.`;
+                        throw new Error(errorMessage);
+                    }
+                    
+                    document.getElementById(loadingId).remove();
+                    addMusicMessage(musicRes.result);
+
+                } catch (err) {
+                    document.getElementById(loadingId).remove();
+                    const errorMsg = err.message === 'Failed to fetch' 
+                        ? "Erro de conexão (CORS). Tente novamente." 
+                        : err.message;
+                        
+                    addMessage('ai', `**❌ Erro na Música:** ${errorMsg}`);
+                } finally {
+                    resetInput();
+                    return; 
+                }
+            }
+
+            const loadingId = addLoading();
+
+            try {
+                const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
+                const req = await fetch(CHAT_API_URL + encodeURIComponent(finalInstruction));
+                
+                if (!req.ok) throw new Error(`Erro HTTP: ${req.status}`);
+
+                const res = await req.json();
+                document.getElementById(loadingId).remove();
+
+                let answer = res.data || res.answer || res.response || res.result || "Sem resposta.";
+                
+                answer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
+                answer = answer.replace(/como uma IA/gi, 'como Crisálida');
+                answer = answer.replace(/fui treinado/gi, 'fui programado');
+
+                addMessage('ai', answer);
+
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                addMessage('ai', `**Erro:** Falha na conexão com Crisálida. (${err.message})`);
+            } finally {
+                resetInput();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
+                emptyState.style.display = 'none';
+                addMessage('ai', "Crisálida, IA criada por Redzin. Por favor, comece a conversa. (Dica: Use **play [música]** para baixar MP3!)");
+            }
+        });
+    </script>
+</body>
+</html>
