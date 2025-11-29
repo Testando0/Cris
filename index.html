@@ -239,21 +239,21 @@
     <main id="chat-container">
         <div class="empty-state" id="empty-state">
             <h1>Crisálida</h1>
-            <p>Criada por Redzin</p>
-            <p style="font-size: 0.9em; margin-top: 20px;">Use **play [nome da música]** para buscar e baixar MP3.</p>
+            <p>Criada Por Redzin</p>
+            <p style="font-size: 0.9em; margin-top: 20px;">Use **play [Nome Da Música]** Para Buscar E Baixar Uma Música.</p>
         </div>
     </main>
 
     <footer>
         <div class="input-box">
-            <textarea id="user-input" rows="1" placeholder="Enviar mensagem para Crisálida..."></textarea>
+            <textarea id="user-input" rows="1" placeholder="Enviar Mensagem..."></textarea>
             <button id="send-btn" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M7 11L12 6L17 11M12 18V6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
         </div>
-        <div class="disclaimer">Crisálida by Redzin. Use "play [música]" para baixar. As IAs podem cometer erros.</div>
+        <div class="disclaimer">As IAs Podem Cometer Erros.</div>
     </footer>
 
     <script>
@@ -321,26 +321,26 @@
             const downloadUrl = download.url; 
             
             if (!downloadUrl) {
-                 addMessage('ai', `❌ Erro: O link de download não foi encontrado na resposta da API.`);
+                 addMessage('ai', `Erro: O Servidor Não Retornou Dados Válidos.`);
                  return;
             }
 
             const filename = title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3';
 
             const contentHtml = `
-                <h3 style="margin-top: 0; font-weight: 600;">🎵 Música Encontrada: ${title}</h3>
+                <h3 style="margin-top: 0; font-weight: 600;">🎵 ${title}</h3>
                 <p><strong>Duração:</strong> ${duration} | <strong>Visualizações:</strong> ${views}</p>
                 <div style="margin-top: 15px; background-color: #18181a; padding: 10px; border-radius: 12px;">
                     <audio controls preload="none" style="width: 100%; display: block; filter: none;">
                         <source src="${downloadUrl}" type="audio/mp3">
-                        Seu navegador não suporta o player de áudio.
+                        Seu Navegador Não Suporta O Player De Áudio.
                     </audio>
                     <a href="${downloadUrl}" download="${filename}" 
                        style="display: block; text-align: center; margin-top: 10px; padding: 10px; background-color: var(--action-gray); color: white; border-radius: 10px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                        ⬇️ Baixar MP3 Agora
+                        ⬇️ Baixar Música
                     </a>
                 </div>
-                <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.7;">O link de download pode expirar após um tempo.</p>
+                <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.7;">O Link De Download Pode Expirar Após Um Tempo.</p>
             `;
 
             div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
@@ -425,7 +425,7 @@
                     const musicRes = await musicReq.json();
 
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
-                        errorMessage = (musicQuery === '') ? `Digite o nome da música. Ex: **play Faded**` : `A música foi encontrada, mas o link de download não estava onde esperávamos.`;
+                        errorMessage = (musicQuery === '') ? `Digite O Nome Da Música. Ex: **play Naked**` : `A Música Foi Encontrada, Mas O Servidor Falhou Ao Realizar O Download.`;
                         throw new Error(errorMessage);
                     }
                     
@@ -437,10 +437,10 @@
                     if(loader) loader.remove();
                     
                     const errorMsg = err.message === 'Failed to fetch' 
-                        ? "Erro de conexão (CORS). Tente novamente." 
+                        ? "Erro De Conexão. Tente Novamente." 
                         : err.message;
                         
-                    addMessage('ai', `**❌ Erro na Música:** ${errorMsg}`);
+                    addMessage('ai', `**Erro Na Música:** ${errorMsg}`);
                 } finally {
                     resetInput();
                     return; 
@@ -471,7 +471,7 @@
             } catch (err) {
                 const loader = document.getElementById(loadingId);
                 if(loader) loader.remove();
-                addMessage('ai', `**Erro:** Falha na conexão com Crisálida. (${err.message})`);
+                addMessage('ai', `**Erro:** Falha Na Conexão Com Crisálida. (${err.message})`);
             } finally {
                 resetInput();
             }
@@ -480,7 +480,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Crisálida, IA criada por Redzin. Por favor, comece a conversa. (Dica: Use **play [música]** para baixar MP3!)");
+                addMessage('ai', "Crisálida, IA criada por Redzin. Por favor, comece a conversa. (Dica: Use **play [música]** para baixar uma música!)");
             }
         });
     </script>
