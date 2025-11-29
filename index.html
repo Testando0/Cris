@@ -65,12 +65,15 @@
             padding: 10px 14px; 
             border-radius: 18px; 
             max-width: 75%; 
-            display: inline-block; 
+            /* CORREÇÃO 3: display: block é melhor com Flexbox na linha */
+            display: block; 
+            /* display: inline-block; <-- Removido */
+            
             word-wrap: break-word; 
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); /* Sombra ajustada */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); 
             font-weight: 400;
             
-            /* CORREÇÃO 2: Suavização de fonte para evitar serrilhado no gradiente */
+            /* CORREÇÃO 2: Suavização de fonte */
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -82,7 +85,13 @@
             border-top-left-radius: 6px; 
         }
         
-        .message-row.user { text-align: right; }
+        /* CORREÇÃO 3: Uso de Flexbox para evitar o espaço estranho */
+        .message-row.user { 
+            display: flex; 
+            justify-content: flex-end; 
+            /* text-align: right; <-- Removido/Substituído */
+        } 
+        
         .message-row.user .message-content {
             background: linear-gradient(135deg, var(--msg-user-bg-start), var(--msg-user-bg-end));
             color: var(--msg-user-color);
