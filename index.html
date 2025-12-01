@@ -131,7 +131,31 @@
         .message-content p { margin-bottom: 10px; }
         .message-content p:last-child { margin-bottom: 0; }
         .message-content a { color: #5B8FF9; text-decoration: none; } 
+        
+        /* Estilos específicos para Mídia (Audio/Imagem) */
         .message-content audio { background-color: #111111; border-radius: 8px; }
+        .generated-image {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin-top: 10px;
+            border: 1px solid #333;
+            display: block;
+        }
+        .download-btn {
+            display: block; 
+            text-align: center; 
+            margin-top: 10px; 
+            padding: 10px; 
+            background-color: var(--action-gray); 
+            color: white; 
+            border-radius: 10px; 
+            text-decoration: none; 
+            font-weight: 600; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+        .download-btn:hover { background-color: #555; }
 
         footer {
             position: fixed;
@@ -240,7 +264,10 @@
         <div class="empty-state" id="empty-state">
             <h1>Crisálida</h1>
             <p>Criada Por Redzin</p>
-            <p style="font-size: 0.9em; margin-top: 20px;">Use **play [Nome Da Música]** Para Buscar E Baixar Uma Música.</p>
+            <p style="font-size: 0.9em; margin-top: 20px;">
+                Use <b>play [Música]</b> para baixar áudio.<br>
+                Use <b>img [Descrição]</b> para criar imagens.
+            </p>
         </div>
     </main>
 
@@ -262,7 +289,9 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // URLs das APIs
+        // --- CHAVES E APIS ---
+        // AVISO DE SEGURANÇA: Em produção, nunca exponha chaves de API no frontend (HTML/JS).
+        const GEMINI_API_KEY = "AIzaSyDEq_4spw5nAglI3f8clbNkssZyaoLj9Dc"; 
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
@@ -291,7 +320,6 @@
             div.className = `message-row ${sender}`;
             const isAi = sender === 'ai';
             
-            // Segurança contra falha do Marked
             let contentHtml;
             if (isAi) {
                 try {
@@ -304,6 +332,30 @@
             }
 
             div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Função para Renderizar a Imagem Gerada
+        function addImageMessage(base64Data, prompt) {
+            const div = document.createElement('div');
+            div.className = 'message-row ai';
+            
+            // Cria um nome de arquivo seguro
+            const filename = 'crisalida_' + prompt.replace(/[^\w\s]/gi, '').substring(0, 20).trim() + '.jpg';
+            
+            // Fonte da imagem base64
+            const imgSrc = `data:image/jpeg;base64,${base64Data}`;
+
+            const contentHtml = `
+                <p>🎨 <strong>Imagem Gerada:</strong> ${prompt}</p>
+                <img src="${imgSrc}" class="generated-image" alt="${prompt}">
+                <a href="${imgSrc}" download="${filename}" class="download-btn">
+                    ⬇️ Baixar Imagem
+                </a>
+            `;
+
+            div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
@@ -335,8 +387,7 @@
                         <source src="${downloadUrl}" type="audio/mp3">
                         Seu Navegador Não Suporta O Player De Áudio.
                     </audio>
-                    <a href="${downloadUrl}" download="${filename}" 
-                       style="display: block; text-align: center; margin-top: 10px; padding: 10px; background-color: var(--action-gray); color: white; border-radius: 10px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                    <a href="${downloadUrl}" download="${filename}" class="download-btn">
                         ⬇️ Baixar Música
                     </a>
                 </div>
@@ -393,8 +444,8 @@
             prepareInputForSending(); 
 
             const lowerText = text.toLowerCase();
-            let errorMessage = null;
 
+            // --- LÓGICA DE IDENTIDADE ---
             const identityKeywords = ["qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é", "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"];
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
                 addMessage('ai', "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**."); 
@@ -404,13 +455,74 @@
             
             const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
             if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
-                addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3."); 
+                addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas, downloads de MP3 e criação de imagens."); 
                 resetInput();
                 return; 
             }
 
+            // --- LÓGICA DE GERAÇÃO DE IMAGEM (NOVO) ---
+            if (lowerText.startsWith("img ") || lowerText.startsWith("imagem ")) {
+                const loadingId = addLoading();
+                const prompt = text.replace(/^(img|imagem)\s+/i, '').trim();
+
+                if (!prompt) {
+                    document.getElementById(loadingId).remove();
+                    addMessage('ai', "Por favor, descreva a imagem. Exemplo: **img um gato astronauta**");
+                    resetInput();
+                    return;
+                }
+
+                try {
+                    // Endpoint do Imagen 3 via Google Cloud/Gemini API
+                    // Nota: O endpoint exato pode variar. Usando o padrão generativelanguage para chaves de API.
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            instances: [
+                                { prompt: prompt }
+                            ],
+                            parameters: {
+                                sampleCount: 1
+                            }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || "Erro na API de Imagem");
+                    }
+
+                    const data = await response.json();
+                    
+                    // A estrutura da resposta do Imagen no generativelanguage geralmente é:
+                    // { predictions: [ { bytesBase64Encoded: "...", mimeType: "image/png" } ] }
+                    
+                    if (data.predictions && data.predictions.length > 0 && data.predictions[0].bytesBase64Encoded) {
+                        const base64Img = data.predictions[0].bytesBase64Encoded;
+                        document.getElementById(loadingId).remove();
+                        addImageMessage(base64Img, prompt);
+                    } else {
+                        throw new Error("Formato de resposta de imagem inválido.");
+                    }
+
+                } catch (err) {
+                    const loader = document.getElementById(loadingId);
+                    if(loader) loader.remove();
+                    console.error(err);
+                    addMessage('ai', `**Não foi possível criar a imagem.**\nDetalhe do erro: ${err.message}. A política de segurança pode ter bloqueado o prompt.`);
+                } finally {
+                    resetInput();
+                    return;
+                }
+            }
+
+            // --- LÓGICA DE MÚSICA ---
             if (lowerText.startsWith("play ")) {
-                
                 const loadingId = addLoading();
                 const musicQuery = text.substring(5).trim();
 
@@ -419,14 +531,12 @@
                     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
 
                     const musicReq = await fetch(proxyUrl);
-                    
                     if (!musicReq.ok) throw new Error(`Erro HTTP: ${musicReq.status}`);
                     
                     const musicRes = await musicReq.json();
 
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
-                        errorMessage = (musicQuery === '') ? `Digite O Nome Da Música. Ex: **play Naked**` : `A Música Foi Encontrada, Mas O Servidor Falhou Ao Realizar O Download.`;
-                        throw new Error(errorMessage);
+                        throw new Error((musicQuery === '') ? `Digite O Nome Da Música. Ex: **play Naked**` : `Música encontrada, mas falha no download.`);
                     }
                     
                     document.getElementById(loadingId).remove();
@@ -435,26 +545,20 @@
                 } catch (err) {
                     const loader = document.getElementById(loadingId);
                     if(loader) loader.remove();
-                    
-                    const errorMsg = err.message === 'Failed to fetch' 
-                        ? "Erro De Conexão. Tente Novamente." 
-                        : err.message;
-                        
-                    addMessage('ai', `**Erro Na Música:** ${errorMsg}`);
+                    addMessage('ai', `**Erro Na Música:** ${err.message === 'Failed to fetch' ? "Erro de Conexão." : err.message}`);
                 } finally {
                     resetInput();
                     return; 
                 }
             }
 
+            // --- LÓGICA DE CHAT PADRÃO ---
             const loadingId = addLoading();
-
             try {
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
                 const req = await fetch(CHAT_API_URL + encodeURIComponent(finalInstruction));
                 
                 if (!req.ok) throw new Error(`Erro HTTP: ${req.status}`);
-
                 const res = await req.json();
                 
                 const loader = document.getElementById(loadingId);
@@ -462,6 +566,7 @@
 
                 let answer = res.data || res.answer || res.response || res.result || "Sem resposta.";
                 
+                // Filtros de Persona
                 answer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
                 answer = answer.replace(/como uma IA/gi, 'como Crisálida');
                 answer = answer.replace(/fui treinado/gi, 'fui programado');
@@ -480,7 +585,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Crisálida, IA criada por Redzin. Por favor, comece a conversa. (Dica: Use **play [música]** para baixar uma música!)");
+                addMessage('ai', "Olá! Sou a Crisálida, criada por Redzin. (Dica: Use **img** para criar imagens ou **play** para músicas!)");
             }
         });
     </script>
