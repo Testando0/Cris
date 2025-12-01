@@ -132,8 +132,9 @@
         .message-content p:last-child { margin-bottom: 0; }
         .message-content a { color: #5B8FF9; text-decoration: none; } 
         
-        /* Estilos específicos para Mídia (Audio/Imagem) */
         .message-content audio { background-color: #111111; border-radius: 8px; }
+        
+        /* Estilos de Imagem */
         .generated-image {
             width: 100%;
             height: auto;
@@ -141,6 +142,8 @@
             margin-top: 10px;
             border: 1px solid #333;
             display: block;
+            min-height: 200px;
+            background: #111;
         }
         .download-btn {
             display: block; 
@@ -289,9 +292,7 @@
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
 
-        // --- CHAVES E APIS ---
-        // AVISO DE SEGURANÇA: Em produção, nunca exponha chaves de API no frontend (HTML/JS).
-        const GEMINI_API_KEY = "AIzaSyDEq_4spw5nAglI3f8clbNkssZyaoLj9Dc"; 
+        // URLs das APIs
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
@@ -336,22 +337,24 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Função para Renderizar a Imagem Gerada
-        function addImageMessage(base64Data, prompt) {
+        // Função para Renderizar a Imagem (Via URL Pollinations)
+        function addImageMessage(prompt) {
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
             // Cria um nome de arquivo seguro
             const filename = 'crisalida_' + prompt.replace(/[^\w\s]/gi, '').substring(0, 20).trim() + '.jpg';
             
-            // Fonte da imagem base64
-            const imgSrc = `data:image/jpeg;base64,${base64Data}`;
+            // Gera uma URL única com seed aleatória para evitar cache
+            const seed = Math.floor(Math.random() * 1000000);
+            const encodedPrompt = encodeURIComponent(prompt);
+            const imgSrc = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
 
             const contentHtml = `
                 <p>🎨 <strong>Imagem Gerada:</strong> ${prompt}</p>
-                <img src="${imgSrc}" class="generated-image" alt="${prompt}">
-                <a href="${imgSrc}" download="${filename}" class="download-btn">
-                    ⬇️ Baixar Imagem
+                <img src="${imgSrc}" class="generated-image" alt="${prompt}" onerror="this.style.display='none'; this.parentElement.innerHTML+='<br>Erro ao carregar imagem.'">
+                <a href="${imgSrc}" download="${filename}" target="_blank" class="download-btn">
+                    ⬇️ Abrir/Baixar Imagem
                 </a>
             `;
 
@@ -460,7 +463,7 @@
                 return; 
             }
 
-            // --- LÓGICA DE GERAÇÃO DE IMAGEM (NOVO) ---
+            // --- LÓGICA DE GERAÇÃO DE IMAGEM (POLLINATIONS) ---
             if (lowerText.startsWith("img ") || lowerText.startsWith("imagem ")) {
                 const loadingId = addLoading();
                 const prompt = text.replace(/^(img|imagem)\s+/i, '').trim();
@@ -472,53 +475,15 @@
                     return;
                 }
 
-                try {
-                    // Endpoint do Imagen 3 via Google Cloud/Gemini API
-                    // Nota: O endpoint exato pode variar. Usando o padrão generativelanguage para chaves de API.
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`;
-                    
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            instances: [
-                                { prompt: prompt }
-                            ],
-                            parameters: {
-                                sampleCount: 1
-                            }
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error?.message || "Erro na API de Imagem");
-                    }
-
-                    const data = await response.json();
-                    
-                    // A estrutura da resposta do Imagen no generativelanguage geralmente é:
-                    // { predictions: [ { bytesBase64Encoded: "...", mimeType: "image/png" } ] }
-                    
-                    if (data.predictions && data.predictions.length > 0 && data.predictions[0].bytesBase64Encoded) {
-                        const base64Img = data.predictions[0].bytesBase64Encoded;
-                        document.getElementById(loadingId).remove();
-                        addImageMessage(base64Img, prompt);
-                    } else {
-                        throw new Error("Formato de resposta de imagem inválido.");
-                    }
-
-                } catch (err) {
+                // Remove o loading e adiciona a imagem diretamente
+                setTimeout(() => {
                     const loader = document.getElementById(loadingId);
                     if(loader) loader.remove();
-                    console.error(err);
-                    addMessage('ai', `**Não foi possível criar a imagem.**\nDetalhe do erro: ${err.message}. A política de segurança pode ter bloqueado o prompt.`);
-                } finally {
+                    addImageMessage(prompt);
                     resetInput();
-                    return;
-                }
+                }, 800); // Pequeno delay artificial para parecer que está "processando"
+                
+                return;
             }
 
             // --- LÓGICA DE MÚSICA ---
@@ -585,7 +550,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Olá! Sou a Crisálida, criada por Redzin. (Dica: Use **img** para criar imagens ou **play** para músicas!)");
+                addMessage('ai', "Olá! Sou a Crisálida, criada por Redzin. (Dica: Use **img [algo]** para criar imagens ou **play [musica]** para ouvir!)");
             }
         });
     </script>
