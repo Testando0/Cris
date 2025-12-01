@@ -131,40 +131,9 @@
         .message-content p { margin-bottom: 10px; }
         .message-content p:last-child { margin-bottom: 0; }
         .message-content a { color: #5B8FF9; text-decoration: none; } 
-        
         .message-content audio { background-color: #111111; border-radius: 8px; }
-        
-        /* Estilos de Imagem */
-        .generated-image {
-            width: 100%;
-            height: auto;
-            border-radius: 12px;
-            margin-top: 10px;
-            border: 1px solid #333;
-            display: block;
-            min-height: 200px;
-            background: #111;
-        }
-        .download-btn {
-            display: block; 
-            text-align: center; 
-            margin-top: 10px; 
-            padding: 10px; 
-            background-color: var(--action-gray); 
-            color: white; 
-            border-radius: 10px; 
-            text-decoration: none; 
-            font-weight: 600; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transition: background 0.2s;
-            border: none;
-            width: 100%;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 1rem;
-        }
-        .download-btn:hover { background-color: #555; }
-        .download-btn:disabled { opacity: 0.6; cursor: wait; }
+        .message-content img { border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+
 
         footer {
             position: fixed;
@@ -273,10 +242,7 @@
         <div class="empty-state" id="empty-state">
             <h1>Crisálida</h1>
             <p>Criada Por Redzin</p>
-            <p style="font-size: 0.9em; margin-top: 20px;">
-                Use <b>play [Música]</b> para baixar áudio.<br>
-                Use <b>img [Descrição]</b> para criar imagens.
-            </p>
+            <p style="font-size: 0.9em; margin-top: 20px;">Use **play [Nome Da Música]** Para Buscar E Baixar Uma Música.<br>Use **draw [Descrição]** Para Gerar Uma Imagem.</p>
         </div>
     </main>
 
@@ -301,6 +267,8 @@
         // URLs das APIs
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
+        // Rota para a Serverless Function do Vercel (onde a chave DALL-E está segura)
+        const DALL_E_API_ROUTE = "/api/generate"; 
         
         // Instrução de Sistema
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida.";
@@ -343,75 +311,6 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Função auxiliar para forçar o download sem abrir nova guia
-        async function forceDownload(url, filename, btnId) {
-            const btn = document.getElementById(btnId);
-            const originalText = btn.innerText;
-            
-            try {
-                btn.innerText = "Baixando...";
-                btn.disabled = true;
-
-                // Usa proxy para evitar problemas de CORS que abrem a imagem
-                const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) throw new Error('Falha no download');
-                
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = blobUrl;
-                a.download = filename;
-                
-                document.body.appendChild(a);
-                a.click();
-                
-                // Limpeza
-                window.URL.revokeObjectURL(blobUrl);
-                document.body.removeChild(a);
-
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao baixar a imagem automaticamente. Tente novamente.");
-            } finally {
-                btn.innerText = "⬇️ Baixar Imagem Salva";
-                btn.disabled = false;
-            }
-        }
-
-        // Função para Renderizar a Imagem (Via URL Pollinations)
-        function addImageMessage(prompt) {
-            const div = document.createElement('div');
-            div.className = 'message-row ai';
-            
-            // Cria um nome de arquivo seguro
-            const filename = 'crisalida_' + prompt.replace(/[^\w\s]/gi, '').substring(0, 20).trim() + '.jpg';
-            
-            // Gera uma URL única com seed aleatória para evitar cache
-            const seed = Math.floor(Math.random() * 1000000);
-            const encodedPrompt = encodeURIComponent(prompt);
-            const imgSrc = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
-            
-            // ID único para o botão
-            const btnId = 'btn-dl-' + seed;
-
-            // OBS: O onclick usa 'return false' para evitar qualquer comportamento padrão de link
-            const contentHtml = `
-                <p>🎨 <strong>Imagem Gerada:</strong> ${prompt}</p>
-                <img src="${imgSrc}" class="generated-image" alt="${prompt}" onerror="this.style.display='none'; this.parentElement.innerHTML+='<br>Erro ao carregar imagem.'">
-                <button id="${btnId}" class="download-btn" onclick="forceDownload('${imgSrc}', '${filename}', '${btnId}')">
-                    ⬇️ Baixar Imagem
-                </button>
-            `;
-
-            div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
-            chatContainer.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
         function addMusicMessage(data) {
             const div = document.createElement('div');
             div.className = 'message-row ai';
@@ -439,11 +338,30 @@
                         <source src="${downloadUrl}" type="audio/mp3">
                         Seu Navegador Não Suporta O Player De Áudio.
                     </audio>
-                    <a href="${downloadUrl}" download="${filename}" class="download-btn" target="_blank">
+                    <a href="${downloadUrl}" download="${filename}" 
+                       style="display: block; text-align: center; margin-top: 10px; padding: 10px; background-color: var(--action-gray); color: white; border-radius: 10px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
                         ⬇️ Baixar Música
                     </a>
                 </div>
                 <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.7;">O Link De Download Pode Expirar Após Um Tempo.</p>
+            `;
+
+            div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function addImageMessage(imageUrl, prompt) {
+            const div = document.createElement('div');
+            div.className = 'message-row ai';
+            
+            const contentHtml = `
+                <h3 style="margin-top: 0; font-weight: 600;">🖼️ Imagem Gerada</h3>
+                <p style="font-style: italic; opacity: 0.8;">"${prompt}"</p>
+                <a href="${imageUrl}" target="_blank" style="display: block; margin-top: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
+                    <img src="${imageUrl}" alt="Imagem gerada pela DALL-E" style="width: 100%; display: block; object-fit: cover;">
+                </a>
+                <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.7;">Clique na imagem para abrir em alta resolução. Imagem expira em 1 hora.</p>
             `;
 
             div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
@@ -496,8 +414,8 @@
             prepareInputForSending(); 
 
             const lowerText = text.toLowerCase();
+            let errorMessage = null;
 
-            // --- LÓGICA DE IDENTIDADE ---
             const identityKeywords = ["qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é", "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"];
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
                 addMessage('ai', "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**."); 
@@ -507,36 +425,65 @@
             
             const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
             if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
-                addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas, downloads de MP3 e criação de imagens."); 
+                addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3."); 
                 resetInput();
                 return; 
             }
-
-            // --- LÓGICA DE GERAÇÃO DE IMAGEM (POLLINATIONS) ---
-            if (lowerText.startsWith("img ") || lowerText.startsWith("imagem ")) {
+            
+            // --- LÓGICA DALL-E (DRAW) ---
+            if (lowerText.startsWith("draw ")) {
                 const loadingId = addLoading();
-                const prompt = text.replace(/^(img|imagem)\s+/i, '').trim();
+                const imagePrompt = text.substring(5).trim();
 
-                if (!prompt) {
+                if (!imagePrompt) {
                     document.getElementById(loadingId).remove();
-                    addMessage('ai', "Por favor, descreva a imagem. Exemplo: **img um gato astronauta**");
+                    addMessage('ai', "Por favor, digite o que você quer desenhar. Ex: **draw um gato astronauta no espaço**.");
                     resetInput();
                     return;
                 }
 
-                // Remove o loading e adiciona a imagem diretamente
-                setTimeout(() => {
+                try {
+                    // Chamada para a Serverless Function do Vercel (/api/generate)
+                    const dallEReq = await fetch(DALL_E_API_ROUTE, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: imagePrompt })
+                    });
+                    
+                    if (!dallEReq.ok) {
+                        const errorData = await dallEReq.json();
+                        throw new Error(errorData.error || `Erro HTTP: ${dallEReq.status}`);
+                    }
+                    
+                    const dallERes = await dallEReq.json();
+                    
+                    document.getElementById(loadingId).remove();
+
+                    if (dallERes.imageUrl) {
+                        addImageMessage(dallERes.imageUrl, imagePrompt);
+                    } else {
+                        throw new Error("Resposta da API inválida ou sem URL.");
+                    }
+
+                } catch (err) {
                     const loader = document.getElementById(loadingId);
                     if(loader) loader.remove();
-                    addImageMessage(prompt);
+                    
+                    const errorMsg = err.message.includes("política de conteúdo") 
+                        ? err.message
+                        : `Erro na Geração: ${err.message}`;
+                        
+                    addMessage('ai', `**Erro Na Imagem:** ${errorMsg}`);
+                } finally {
                     resetInput();
-                }, 800); 
-                
-                return;
+                    return; 
+                }
             }
 
-            // --- LÓGICA DE MÚSICA ---
+
+            // --- LÓGICA MÚSICA (PLAY) ---
             if (lowerText.startsWith("play ")) {
+                
                 const loadingId = addLoading();
                 const musicQuery = text.substring(5).trim();
 
@@ -545,12 +492,14 @@
                     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
 
                     const musicReq = await fetch(proxyUrl);
+                    
                     if (!musicReq.ok) throw new Error(`Erro HTTP: ${musicReq.status}`);
                     
                     const musicRes = await musicReq.json();
 
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
-                        throw new Error((musicQuery === '') ? `Digite O Nome Da Música. Ex: **play Naked**` : `Música encontrada, mas falha no download.`);
+                        errorMessage = (musicQuery === '') ? `Digite O Nome Da Música. Ex: **play Naked**` : `A Música Foi Encontrada, Mas O Servidor Falhou Ao Realizar O Download.`;
+                        throw new Error(errorMessage);
                     }
                     
                     document.getElementById(loadingId).remove();
@@ -559,20 +508,27 @@
                 } catch (err) {
                     const loader = document.getElementById(loadingId);
                     if(loader) loader.remove();
-                    addMessage('ai', `**Erro Na Música:** ${err.message === 'Failed to fetch' ? "Erro de Conexão." : err.message}`);
+                    
+                    const errorMsg = err.message === 'Failed to fetch' 
+                        ? "Erro De Conexão. Tente Novamente." 
+                        : err.message;
+                        
+                    addMessage('ai', `**Erro Na Música:** ${errorMsg}`);
                 } finally {
                     resetInput();
                     return; 
                 }
             }
 
-            // --- LÓGICA DE CHAT PADRÃO ---
+            // --- LÓGICA CHAT PADRÃO ---
             const loadingId = addLoading();
+
             try {
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
                 const req = await fetch(CHAT_API_URL + encodeURIComponent(finalInstruction));
                 
                 if (!req.ok) throw new Error(`Erro HTTP: ${req.status}`);
+
                 const res = await req.json();
                 
                 const loader = document.getElementById(loadingId);
@@ -580,7 +536,6 @@
 
                 let answer = res.data || res.answer || res.response || res.result || "Sem resposta.";
                 
-                // Filtros de Persona
                 answer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
                 answer = answer.replace(/como uma IA/gi, 'como Crisálida');
                 answer = answer.replace(/fui treinado/gi, 'fui programado');
@@ -599,9 +554,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Olá! Sou a Crisálida, criada por Redzin. (Dica: Use **img [algo]** para criar imagens ou **play [musica]** para ouvir!)");
+                addMessage('ai', "Crisálida, IA criada por Redzin. Por favor, comece a conversa. (Dica: Use **play [música]** ou **draw [imagem]** para começar!)");
             }
         });
     </script>
 </body>
 </html>
+
