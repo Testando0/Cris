@@ -1,0 +1,12 @@
+{
+  "name": "dalle-music-chat-app",
+  "version": "1.0.0",
+  "description": "Crisálida chat with DALL-E and Music Download features.",
+  "main": "api/generate.js",
+  "scripts": {
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "openai": "^4.24.1"
+  }
+}
