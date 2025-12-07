@@ -6,11 +6,6 @@
     <title>Crisálida | Redzin</title>
     
     <link rel="icon" href="https://uploads.zero-two-apis.com.br/uploads/images/5d83fa84fa51fe5f32b71814dd14e4f2b7a434d8bec27c2d3102c824de8bc667.png" type="image/png">
-    
-    <link rel="manifest" href="/manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://uploads.zero-two-apis.com.br/uploads/images/5d83fa84fa51fe5f32b71814dd14e4f2b7a434d8bec27c2d3102c824de8bc667.png"> 
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -487,20 +482,6 @@
                 emptyState.style.display = 'none';
                 addMessage('ai', "Oi, Eu Sou A Crisálida, Uma IA Criada Pelo Redzin. Por Favor, Comece A Conversa. (Dica: Use **play [música]** Para Baixar Uma Música!)");
             }
-            
-            // --- NOVO: Registro do Service Worker para PWA ---
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js')
-                        .then(registration => {
-                            console.log('Service Worker registrado com sucesso:', registration.scope);
-                        })
-                        .catch(err => {
-                            console.error('Falha no registro do Service Worker:', err);
-                        });
-                });
-            }
-            // ------------------------------------------------
         });
     </script>
 </body>
