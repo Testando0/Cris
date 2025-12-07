@@ -1,0 +1,21 @@
+{
+  "name": "Crisálida",
+  "short_name": "Crisálida IA",
+  "description": "Crisálida, a IA para conversas e downloads de MP3, criada por Redzin.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#252525",
+  "icons": [
+    {
+      "src": "favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
