@@ -451,7 +451,14 @@
 
             try {
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
-                const req = await fetch(CHAT_API_URL + encodeURIComponent(finalInstruction));
+                
+                // --- CORREÇÃO APLICADA AQUI ---
+                // 1. Monta a URL da API
+                const targetUrl = CHAT_API_URL + encodeURIComponent(finalInstruction);
+                // 2. Encaminha via Proxy para evitar CORS
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                
+                const req = await fetch(proxyUrl);
                 
                 if (!req.ok) throw new Error(`Erro HTTP: ${req.status}`);
 
@@ -460,8 +467,20 @@
                 const loader = document.getElementById(loadingId);
                 if(loader) loader.remove();
 
-                let answer = res.data || res.answer || res.response || res.result || "Sem resposta.";
+                // --- CORREÇÃO DE LEITURA DO JSON ---
+                let answer = "Sem resposta.";
                 
+                if (res.data && res.data.result) {
+                    answer = res.data.result;
+                } else if (res.answer) {
+                    answer = res.answer;
+                } else if (res.data && typeof res.data === 'string') {
+                    answer = res.data;
+                } else if (res.result) {
+                    answer = res.result;
+                }
+                
+                // Filtros de identidade
                 answer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
                 answer = answer.replace(/como uma IA/gi, 'como Crisálida');
                 answer = answer.replace(/fui treinado/gi, 'fui programado');
