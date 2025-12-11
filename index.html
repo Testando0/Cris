@@ -266,13 +266,9 @@
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
         const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
         
-        // --- Histórico da Conversa ---
-        // A primeira entrada define o comportamento da IA (role: system)
-        const chatHistory = [
-            { role: "system", content: "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida." }
-        ];
+        // Instrução de Sistema
+        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida.";
         
-        // Auto-redimensionamento do campo de texto e ativação do botão
         userInput.addEventListener('input', function() {
             this.style.height = '24px'; 
             this.style.height = (this.scrollHeight) + 'px';
@@ -281,7 +277,6 @@
             sendBtn.disabled = !hasText;
         });
 
-        // Envio com Enter
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -291,25 +286,12 @@
 
         sendBtn.addEventListener('click', sendMessage);
 
-        /**
-         * Adiciona uma mensagem ao DOM e salva no chatHistory.
-         * @param {string} sender - 'user' ou 'ai'
-         * @param {string} text - O conteúdo da mensagem
-         */
         function addMessage(sender, text) {
             const div = document.createElement('div');
             div.className = `message-row ${sender}`;
             const isAi = sender === 'ai';
             
-            // Define a função (role) para o histórico da API
-            const role = (sender === 'user') ? 'user' : 'assistant';
-            
-            // Salva no histórico global (excluindo mensagens de erro/loading)
-            if (sender !== 'system' && sender !== 'error') { 
-                chatHistory.push({ role: role, content: text });
-            }
-            
-            // Renderização: usa marked para IA, ou simples <br> para usuário
+            // Segurança contra falha do Marked
             let contentHtml;
             if (isAi) {
                 try {
@@ -326,9 +308,6 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        /**
-         * Adiciona o bloco de áudio/download para a função 'play'.
-         */
         function addMusicMessage(data) {
             const div = document.createElement('div');
             div.className = 'message-row ai';
@@ -369,9 +348,6 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        /**
-         * Adiciona o indicador de 'digitando...' (loading).
-         */
         function addLoading() {
             const id = 'loader-' + Date.now();
             const div = document.createElement('div');
@@ -408,23 +384,17 @@
             userInput.focus();
         }
 
-        /**
-         * Lógica principal de envio de mensagem.
-         */
         async function sendMessage() {
             const text = userInput.value.trim();
             if (!text) return;
             if(emptyState) emptyState.style.display = 'none';
             
-            // Adiciona a pergunta do usuário ao DOM e ao histórico
-            addMessage('user', text); 
+            addMessage('user', text);
             prepareInputForSending(); 
 
             const lowerText = text.toLowerCase();
             let errorMessage = null;
 
-            // --- Respostas Rápidas (Hardcoded) ---
-            
             const identityKeywords = ["qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é", "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"];
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
                 addMessage('ai', "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**."); 
@@ -439,8 +409,6 @@
                 return; 
             }
 
-            // --- Lógica de Download de Música ---
-            
             if (lowerText.startsWith("play ")) {
                 
                 const loadingId = addLoading();
@@ -475,53 +443,19 @@
                     addMessage('ai', `**Erro Na Música:** ${errorMsg}`);
                 } finally {
                     resetInput();
-                    // Remove a mensagem do usuário do histórico, pois o comando "play" não é uma conversa.
-                    if (chatHistory.length > 1 && chatHistory[chatHistory.length - 1].role === 'user') {
-                        chatHistory.pop(); 
-                    }
                     return; 
                 }
             }
-            
-            // --- Lógica de Chat com Histórico (Máximo 20) ---
-            
+
             const loadingId = addLoading();
 
             try {
+                const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
                 
-                // 1. Pega a instrução de sistema
-                const systemInstruction = chatHistory[0].content; 
-                
-                // 2. Determina o subconjunto do histórico.
-                const historyWithoutSystem = chatHistory.slice(1);
-                
-                // Pega as últimas 20 mensagens (User e AI)
-                const startIndex = Math.max(0, historyWithoutSystem.length - 20); 
-                const limitedHistory = historyWithoutSystem.slice(startIndex);
-                
-                // 3. Constrói a string da conversa limitada
-                let fullConversation = "";
-                for (const message of limitedHistory) {
-                    const roleLabel = (message.role === 'user') ? "Usuário" : "Crisálida";
-                    fullConversation += `${roleLabel}: ${message.content}\n\n`;
-                }
-                
-                // 4. Monta a instrução final com o histórico limitado
-                const finalInstruction = `
-                    ${systemInstruction}
-                    
-                    # Histórico da Conversa
-                    (Este é o histórico das últimas ${limitedHistory.length} mensagens para contexto. Use-o para manter o assunto.)
-                    ${fullConversation.trim()}
-                    
-                    # Última Pergunta
-                    Com base no histórico e nas instruções, responda à última pergunta do usuário. Use formatação Markdown.
-                    Usuário: ${text}
-                    Crisálida:
-                `;
-                
-                // 5. Monta a URL da API e faz a requisição
+                // --- CORREÇÃO APLICADA AQUI ---
+                // 1. Monta a URL da API
                 const targetUrl = CHAT_API_URL + encodeURIComponent(finalInstruction);
+                // 2. Encaminha via Proxy para evitar CORS
                 const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
                 
                 const req = await fetch(proxyUrl);
@@ -533,7 +467,7 @@
                 const loader = document.getElementById(loadingId);
                 if(loader) loader.remove();
 
-                // --- Leitura e Filtro da Resposta ---
+                // --- CORREÇÃO DE LEITURA DO JSON ---
                 let answer = "Sem resposta.";
                 
                 if (res.data && res.data.result) {
@@ -546,20 +480,14 @@
                     answer = res.result;
                 }
                 
-                // Filtros de identidade (Garantia de que a instrução de sistema será respeitada)
+                // Filtros de identidade
                 answer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
                 answer = answer.replace(/como uma IA/gi, 'como Crisálida');
                 answer = answer.replace(/fui treinado/gi, 'fui programado');
 
-                // Adiciona a resposta da AI ao DOM e ao Histórico
-                addMessage('ai', answer); 
+                addMessage('ai', answer);
 
             } catch (err) {
-                // Se falhar, remove a última mensagem do usuário do histórico, pois a IA não respondeu.
-                if (chatHistory.length > 1 && chatHistory[chatHistory.length - 1].role === 'user') {
-                    chatHistory.pop(); 
-                }
-                
                 const loader = document.getElementById(loadingId);
                 if(loader) loader.remove();
                 addMessage('ai', `**Erro:** Falha Na Conexão Com Crisálida. (${err.message})`);
@@ -571,7 +499,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                // Mensagem de boas-vindas (será salva no histórico)
                 addMessage('ai', "Oi, Eu Sou A Crisálida, Uma IA Criada Pelo Redzin. Por Favor, Comece A Conversa. (Dica: Use **play [música]** Para Baixar Uma Música!)");
             }
         });
