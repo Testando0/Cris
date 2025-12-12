@@ -327,6 +327,10 @@
 
             const filename = title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3';
 
+            // CORREÇÃO: Criação do URL mascarado usando o proxy de CORS
+            const maskedDownloadUrl = `https://corsproxy.io/?${encodeURIComponent(downloadUrl)}`;
+
+
             const contentHtml = `
                 <h3 style="margin-top: 0; font-weight: 600;">🎵 ${title}</h3>
                 <p><strong>Duração:</strong> ${duration} | <strong>Visualizações:</strong> ${views}</p>
@@ -335,7 +339,7 @@
                         <source src="${downloadUrl}" type="audio/mp3">
                         Seu Navegador Não Suporta O Player De Áudio.
                     </audio>
-                    <a href="${downloadUrl}" download="${filename}" 
+                    <a href="${maskedDownloadUrl}" download="${filename}" 
                        style="display: block; text-align: center; margin-top: 10px; padding: 10px; background-color: var(--action-gray); color: white; border-radius: 10px; text-decoration: none; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
                         ⬇️ Baixar Música
                     </a>
@@ -430,7 +434,7 @@
                     }
                     
                     document.getElementById(loadingId).remove();
-                    addMusicMessage(musicRes.result);
+                    addMusicMessage(musicRes.result); // Chama a função com a lógica de mascaramento
 
                 } catch (err) {
                     const loader = document.getElementById(loadingId);
@@ -452,7 +456,6 @@
             try {
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
                 
-                // --- CORREÇÃO APLICADA AQUI ---
                 // 1. Monta a URL da API
                 const targetUrl = CHAT_API_URL + encodeURIComponent(finalInstruction);
                 // 2. Encaminha via Proxy para evitar CORS
