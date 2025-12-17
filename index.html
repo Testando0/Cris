@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
-        /* --- Configurações Globais --- */
+        /* (Estilos CSS mantidos) */
         :root {
             --bg-color: #000000;
             --chat-width: 48rem; 
@@ -25,6 +25,8 @@
             --msg-ai-bg: #252525; 
             --footer-height-buffer: 200px; 
             --action-gray: #444444;
+            --voice-active-color: #ff4d4d; 
+            --audio-play-color: #444444; 
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -92,6 +94,70 @@
             color: var(--msg-user-color);
             border-top-right-radius: 6px; 
         }
+
+        /* --- Estilos do Player de Áudio Falso (Simulação de WhatsApp) --- */
+        .audio-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 180px; 
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .audio-message .play-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s;
+        }
+
+        .message-row.ai .audio-message .play-button {
+            background-color: var(--audio-play-color); 
+            color: white;
+        }
+        .message-row.user .audio-message .play-button {
+            background-color: #ffffff; 
+            color: var(--msg-user-bg-end);
+        }
+
+        .audio-message .progress-bar {
+            flex-grow: 1;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            position: relative;
+        }
+        .message-row.user .audio-message .progress-bar {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-message .progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%; 
+            background: white; 
+            border-radius: 2px;
+            transition: width 0.1s linear;
+        }
+        .message-row.ai .audio-message .progress { background: var(--audio-play-color); }
+        .message-row.user .audio-message .progress { background: white; }
+
+        .audio-message .duration {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            min-width: 40px; 
+            text-align: right;
+        }
+        /* FIM dos estilos do Player de Áudio Falso */
+
+
+        /* ... (Restante dos estilos (empty-state, typing-dots, footer, input-box, voice-status) mantidos) ... */
         
         .empty-state {
             flex: 1;
@@ -156,10 +222,11 @@
             display: flex;
             align-items: flex-end;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative; 
         }
 
         textarea {
-            width: 100%;
+            flex-grow: 1; 
             background: transparent;
             border: none;
             color: #fff;
@@ -175,7 +242,14 @@
         }
 
         textarea::-webkit-scrollbar { display: none; }
-        button#send-btn {
+        
+        .action-buttons {
+            display: flex;
+            align-items: flex-end;
+            gap: 5px;
+        }
+        
+        button.action-btn {
             background: transparent;
             border: none;
             color: #444;
@@ -196,7 +270,19 @@
             color: white;
         }
         
-        button#send-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+        button#mic-btn.active {
+            background-color: var(--voice-active-color); 
+            color: white;
+            animation: pulse-mic 1.5s infinite;
+        }
+        
+        @keyframes pulse-mic {
+            0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
+        }
+        
+        button.action-btn:disabled { cursor: not-allowed; opacity: 0.5; }
 
         .disclaimer {
             font-size: 11px;
@@ -225,6 +311,27 @@
             40% { transform: scale(1); }
         }
 
+        .voice-status {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--voice-active-color);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .voice-status.active {
+            opacity: 1;
+        }
+
         @media (max-width: 768px) {
             body { font-size: 15px; }
             .message-row { padding: 4px 0; }
@@ -246,12 +353,22 @@
 
     <footer>
         <div class="input-box">
+            <div id="voice-status" class="voice-status">🎙️ Ouvindo...</div>
             <textarea id="user-input" rows="1" placeholder="Enviar Mensagem..."></textarea>
-            <button id="send-btn" disabled>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7 11L12 6L17 11M12 18V6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
+            <div class="action-buttons">
+                <button id="mic-btn" class="action-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 19C15.866 19 19 15.866 19 12V6C19 2.13401 15.866 0 12 0C8.13401 0 5 2.13401 5 6V12C5 15.866 8.13401 19 12 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M8 12L16 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 23V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button id="send-btn" class="action-btn" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7 11L12 6L17 11M12 18V6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
         </div>
         <div class="disclaimer">As IAs Podem Cometer Erros.</div>
     </footer>
@@ -261,71 +378,373 @@
         const emptyState = document.getElementById('empty-state');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
+        const micBtn = document.getElementById('mic-btn');
+        const voiceStatus = document.getElementById('voice-status');
 
         // URLs das APIs
         const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
-        const MUSIC_API_BASE_URL = "https://api.vreden.my.id/api/v1/download/play/audio";
+        
+        // CORSPROXY.IO: Codifica a URL base da Vreden e encapsula
+        const VREDEN_API_ENDPOINT = "https://api.vreden.my.id/api/v1/download/play/audio?query=";
+        const ENCODED_VREDEN_URL = encodeURIComponent(VREDEN_API_ENDPOINT);
+        const MUSIC_API_BASE_URL = `https://corsproxy.io/?${ENCODED_VREDEN_URL}`; 
         
         // Instrução de Sistema
         const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida.";
         
-        userInput.addEventListener('input', function() {
-            this.style.height = '24px'; 
-            this.style.height = (this.scrollHeight) + 'px';
-            const hasText = this.value.trim().length > 0;
-            sendBtn.classList.toggle('active', hasText);
-            sendBtn.disabled = !hasText;
-        });
+        // LISTA DE PRIORIDADE: SEM VOZ DO GOOGLE
+        const PREFERRED_VOICE_NAMES = [
+            "Luciana", 
+            "Vitoria", 
+            "Microsoft Maria",
+            "female", 
+            "Standard" 
+        ]; 
+        
+        let isRecording = false;
+        let isSpeaking = false;
+        let activeUtterance = null; 
 
-        userInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if(!sendBtn.disabled) sendMessage();
+        // --- FUNÇÃO PARA FORMATAR SECONDS EM MM:SS ---
+        function formatSeconds(seconds) {
+            if (typeof seconds !== 'number' || isNaN(seconds) || seconds < 0) return 'Duração Desconhecida';
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${min}:${sec}`;
+        }
+        
+        // --- FUNÇÕES DE CODIFICAÇÃO UTF-8 SEGURA ---
+
+        // Função para codificar texto UTF-8 (com acentos) para Base64 de forma segura
+        function utf8ToBase64(str) {
+            const utf8Bytes = new TextEncoder().encode(str);
+            const binaryString = String.fromCharCode(...utf8Bytes);
+            return btoa(binaryString);
+        }
+
+        // Função para decodificar Base64 para texto UTF-8 (com acentos) de forma segura
+        function base64ToUtf8(str) {
+            const binaryString = atob(str);
+            const utf8Bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                utf8Bytes[i] = binaryString.charCodeAt(i);
             }
-        });
+            return new TextDecoder().decode(utf8Bytes);
+        }
+        
+        // --- FUNÇÃO PARA LIMPAR TEXTO PARA TTS (SEM EMOJIS/FORMATAÇÃO) ---
+        function cleanTextForTts(text) {
+            let cleaned = text;
 
-        sendBtn.addEventListener('click', sendMessage);
+            // 1. Remover Emojis 
+            cleaned = cleaned.replace(/(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g, '');
 
-        function addMessage(sender, text) {
+            // 2. Remover negrito/itálico Markdown (**) e (*)
+            cleaned = cleaned.replace(/\*\*/g, '');
+            cleaned = cleaned.replace(/\*/g, '');
+
+            // 3. Remover códigos e headers (`texto` e #)
+            cleaned = cleaned.replace(/`/g, '');
+            cleaned = cleaned.replace(/#/g, '');
+
+            // 4. Remover link formatting [texto](url) - Manter apenas o texto
+            cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+
+            // 5. Substituir quebras de linha por um ponto para melhor fluxo de fala
+            cleaned = cleaned.replace(/[\n\r]+/g, '. '); 
+
+            // 6. Normalizar espaços múltiplos
+            cleaned = cleaned.replace(/\s{2,}/g, ' ');
+            
+            // 7. Remover pontuações que o TTS pode ler literalmente no final
+            cleaned = cleaned.replace(/\.$/, '');
+
+            return cleaned.trim();
+        }
+
+        
+        // --- FUNÇÕES DE CHAT DE VOZ ---
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                isRecording = true;
+                micBtn.classList.add('active');
+                voiceStatus.classList.add('active');
+                userInput.placeholder = 'Fale agora...';
+                sendBtn.disabled = true;
+                window.speechSynthesis.cancel(); 
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                micBtn.classList.remove('active');
+                voiceStatus.classList.remove('active');
+                userInput.placeholder = 'Enviar Mensagem...';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                
+                // Limpeza feita no sendMessage para áudio e texto.
+                
+                if (transcript.trim().length > 0) {
+                    sendMessage('audio-sent', transcript); 
+                } else {
+                    addMessage('ai', 'Não detectei sua voz. Tente tocar no microfone novamente e falar mais alto.', 'text');
+                    resetInput();
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Erro de reconhecimento de fala:', event.error);
+                let errorMsg = 'Ocorreu um erro no reconhecimento de fala. Tente digitar.';
+                if (event.error === 'no-speech') {
+                     errorMsg = 'Não detectei sua voz. Tente tocar no microfone novamente e falar mais alto.';
+                } else if (event.error === 'not-allowed') {
+                    errorMsg = 'É necessário permitir o uso do microfone para o chat de voz.';
+                }
+                isRecording = false;
+                micBtn.classList.remove('active');
+                voiceStatus.classList.remove('active');
+                userInput.placeholder = 'Enviar Mensagem...';
+                addMessage('ai', errorMsg, 'text'); 
+                resetInput(); 
+            };
+
+            micBtn.addEventListener('click', () => {
+                if (isRecording) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
+
+        } else {
+            micBtn.disabled = true;
+            micBtn.title = 'Seu navegador não suporta Reconhecimento de Fala.';
+        }
+
+        
+        // --- FUNÇÃO PARA FALAR (TTS) E ATUALIZAR O PLAYER VISUAL ---
+        function speakAndMonitor(text, playerElement) {
+            if (!('speechSynthesis' in window)) {
+                playerElement.querySelector('.duration').textContent = 'TTS Não Suportado';
+                return;
+            }
+            
+            const textForTts = cleanTextForTts(text);
+
+            if (activeUtterance && activeUtterance.text !== textForTts) { 
+                window.speechSynthesis.cancel();
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(textForTts);
+            activeUtterance = utterance;
+
+            const voices = window.speechSynthesis.getVoices();
+            
+            let selectedVoice = null;
+            
+            // 1. Tenta encontrar as vozes preferidas, EXCLUINDO o Google
+            for (const name of PREFERRED_VOICE_NAMES) { 
+                selectedVoice = voices.find(
+                    voice => voice.lang.startsWith('pt-') && 
+                             !voice.name.toLowerCase().includes('google') && 
+                             voice.name.includes(name)
+                );
+                if (selectedVoice) break;
+            }
+
+            // 2. Fallback: Tenta encontrar qualquer outra voz feminina/jovem pt-BR,
+            if (!selectedVoice) {
+                selectedVoice = voices.find(
+                    voice => voice.lang.startsWith('pt-') && 
+                            !voice.name.toLowerCase().includes('google') && 
+                            (voice.name.includes('feminino') || voice.name.includes('female'))
+                );
+            }
+            
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+                console.log('Voz selecionada:', selectedVoice.name);
+                utterance.rate = 1.1; 
+            } else {
+                utterance.lang = 'pt-BR'; 
+                utterance.rate = 1.0; 
+                console.warn('Nenhuma voz pt-BR não-Google encontrada. O sistema usará a voz padrão, o que pode resultar em silêncio ou uma voz genérica.');
+            }
+            
+
+            const progressBar = playerElement.querySelector('.progress');
+            const durationDisplay = playerElement.querySelector('.duration');
+            const playButton = playerElement.querySelector('.play-button');
+            const duration = textForTts.length * 0.15 / utterance.rate; 
+            let startTime = 0;
+            let currentPosition = 0;
+            let interval = null;
+
+            function formatTime(seconds) {
+                const min = Math.floor(seconds / 60);
+                const sec = Math.floor(seconds % 60);
+                return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+            }
+
+            durationDisplay.textContent = formatTime(duration) || '0:00';
+            
+            function updateProgress() {
+                const elapsed = (Date.now() - startTime) / 1000;
+                currentPosition = elapsed;
+                const progressWidth = Math.min(100, (elapsed / duration) * 100);
+                
+                progressBar.style.width = `${progressWidth}%`;
+                durationDisplay.textContent = formatTime(currentPosition) || '0:00';
+                
+                if (progressWidth >= 100) {
+                    clearInterval(interval);
+                }
+            }
+
+            utterance.onstart = () => {
+                isSpeaking = true;
+                startTime = Date.now();
+                interval = setInterval(updateProgress, 100);
+                playButton.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M6 19H10V5H6M14 19H18V5H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`; 
+            };
+
+            utterance.onend = () => {
+                isSpeaking = false;
+                clearInterval(interval);
+                progressBar.style.width = '100%';
+                durationDisplay.textContent = formatTime(duration) || '0:00';
+                playButton.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`; 
+            };
+            
+            window.speechSynthesis.speak(utterance);
+        }
+        
+        window.speechSynthesis.onvoiceschanged = () => {
+             console.log('Vozes TTS carregadas.');
+        };
+
+
+        // --- ADIÇÃO DE MENSAGENS VISUAIS DE ÁUDIO E TEXTO ---
+        
+        function addAiAudioMessage(text) {
+            const div = document.createElement('div');
+            div.className = `message-row ai`;
+            
+            const encodedText = utf8ToBase64(text); 
+            
+            const contentHtml = `
+                <div class="audio-message" onclick="togglePlay(this, '${encodedText}')">
+                    <div class="play-button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="progress-bar"><div class="progress"></div></div>
+                    <div class="duration">0:00</div>
+                </div>
+            `;
+            div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
+            
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        window.togglePlay = function(playerElement, encodedText) {
+            const text = base64ToUtf8(encodedText);
+            
+            const textForTts = cleanTextForTts(text); 
+
+            if (window.speechSynthesis.paused && activeUtterance && activeUtterance.text === textForTts) {
+                window.speechSynthesis.resume();
+                isSpeaking = true;
+                playerElement.querySelector('.play-button').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M6 19H10V5H6M14 19H18V5H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`; 
+            } else if (isSpeaking && activeUtterance && activeUtterance.text === textForTts && !window.speechSynthesis.paused) {
+                window.speechSynthesis.pause();
+                isSpeaking = false;
+                playerElement.querySelector('.play-button').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`; 
+            } else {
+                window.speechSynthesis.cancel();
+                document.querySelectorAll('.audio-message').forEach(p => {
+                    p.querySelector('.play-button').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+                    p.querySelector('.progress').style.width = '0%';
+                });
+                speakAndMonitor(text, playerElement);
+            }
+        };
+
+        function addMessage(sender, text, type = 'text') {
             const div = document.createElement('div');
             div.className = `message-row ${sender}`;
-            const isAi = sender === 'ai';
             
-            // Segurança contra falha do Marked
             let contentHtml;
-            if (isAi) {
-                try {
-                    contentHtml = (typeof marked !== 'undefined') ? marked.parse(text) : text;
-                } catch (e) {
-                    contentHtml = text;
-                }
+            
+            if (sender === 'user' && type === 'audio-sent') {
+                const duration = text.length * 0.15; 
+                const formattedDuration = `${Math.floor(duration / 60)}:${Math.floor(duration % 60).toString().padStart(2, '0')}`;
+                
+                contentHtml = `
+                    <div class="audio-message" style="min-width: 150px;">
+                        <div class="play-button">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="progress-bar"><div class="progress" style="width: 100%;"></div></div>
+                        <div class="duration">${formattedDuration}</div>
+                    </div>
+                `;
             } else {
-                contentHtml = text.replace(/\n/g, '<br>');
+                if (sender === 'ai') {
+                    try {
+                        contentHtml = (typeof marked !== 'undefined') ? marked.parse(text) : text;
+                    } catch (e) {
+                        contentHtml = text;
+                    }
+                } else {
+                    contentHtml = text.replace(/\n/g, '<br>');
+                }
             }
 
             div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
+        
+        // --- FUNÇÕES DE MÚSICA (ATUALIZADA PARA VREDEN) ---
 
-        function addMusicMessage(data) {
+        function addMusicMessage(resultData) { 
             const div = document.createElement('div');
             div.className = 'message-row ai';
             
-            const meta = data.metadata || {};
-            const title = meta.title || 'Música Desconhecida';
-            const duration = meta.timestamp || 'Duração Desconhecida';
-            const views = meta.views ? String(meta.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
+            // Extrai dados da estrutura VREDEN (resultData é o objeto 'result')
+            const metadata = resultData.metadata || {};
+            const download = resultData.download || {};
+
+            const title = metadata.title || 'Música Desconhecida';
             
-            const download = data.download || {};
+            const durationSeconds = metadata.seconds; // int em segundos
+            const duration = formatSeconds(durationSeconds);
+            
+            const views = metadata.views ? String(metadata.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
+            
             const downloadUrl = download.url; 
             
             if (!downloadUrl) {
-                 addMessage('ai', `Erro: O Servidor Não Retornou Dados Válidos.`);
+                 addMessage('ai', `Erro: O Servidor Não Retornou O Link De Download.`, 'text');
                  return;
             }
 
-            const filename = title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3';
+            const filename = download.filename || (title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3');
 
             const contentHtml = `
                 <h3 style="margin-top: 0; font-weight: 600;">🎵 ${title}</h3>
@@ -346,7 +765,11 @@
             div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // LINHA REMOVIDA: addMessage('ai', `Música **${title}** encontrada e pronta para download!`, 'text');
         }
+
+        // --- FUNÇÕES DE CONTROLE ---
 
         function addLoading() {
             const id = 'loader-' + Date.now();
@@ -368,97 +791,150 @@
         }
 
         function prepareInputForSending() {
-            userInput.value = '';
+            window.speechSynthesis.cancel();
             userInput.style.height = '24px';
             sendBtn.classList.remove('active');
             sendBtn.disabled = true;
             userInput.disabled = true;
+            micBtn.disabled = true; 
         }
 
         function resetInput() {
-            userInput.value = '';
+            userInput.value = ''; 
             userInput.style.height = '24px';
             sendBtn.classList.remove('active');
             sendBtn.disabled = false;
             userInput.disabled = false;
+            micBtn.disabled = false;
             userInput.focus();
         }
 
-        async function sendMessage() {
-            const text = userInput.value.trim();
+        userInput.addEventListener('input', function() {
+            window.speechSynthesis.cancel(); 
+            this.style.height = '24px'; 
+            this.style.height = (this.scrollHeight) + 'px';
+            const hasText = this.value.trim().length > 0;
+            sendBtn.classList.toggle('active', hasText);
+            sendBtn.disabled = !hasText;
+        });
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if(!sendBtn.disabled) sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+
+        async function sendMessage(type = 'text', audioTranscript = null) {
+            
+            const text = audioTranscript || userInput.value.trim();
             if (!text) return;
             if(emptyState) emptyState.style.display = 'none';
             
-            addMessage('user', text);
+            // Limpeza imediata do input (Funciona para texto e áudio)
+            userInput.value = ''; 
+            userInput.dispatchEvent(new Event('input')); 
+            
             prepareInputForSending(); 
 
+            // Adiciona a mensagem do usuário (seja ela transcrita ou digitada)
+            addMessage('user', text, type);
+            
+            
             const lowerText = text.toLowerCase();
-            let errorMessage = null;
+            let aiAnswer = null;
+            let responseType = type; 
 
+            // --- Checagens de Identidade e Bloqueio ---
             const identityKeywords = ["qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é", "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"];
             if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
-                addMessage('ai', "Eu sou a **Crisálida**, uma inteligência artificial criada por **Redzin**."); 
+                aiAnswer = "Eu sou a Crisálida, uma inteligência artificial criada por Redzin.";
+                if (responseType === 'audio-sent') {
+                    addAiAudioMessage(aiAnswer);
+                } else {
+                    addMessage('ai', aiAnswer, 'text');
+                }
                 resetInput();
                 return; 
             }
             
             const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
             if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
-                addMessage('ai', "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a **Crisálida**, criada por **Redzin**, e estou aqui para te ajudar com suas dúvidas e downloads de MP3."); 
+                aiAnswer = "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a Crisálida, criada por Redzin, e estou aqui para te ajudar com suas dúvidas e downloads de MP3.";
+                 if (responseType === 'audio-sent') {
+                    addAiAudioMessage(aiAnswer);
+                } else {
+                    addMessage('ai', aiAnswer, 'text');
+                }
                 resetInput();
                 return; 
             }
 
+            // --- Checagem de Música (LÓGICA DE 1 PASSO COM CORS VIA CORSPROXY.IO) ---
             if (lowerText.startsWith("play ")) {
                 
                 const loadingId = addLoading();
-                const musicQuery = text.substring(5).trim();
+                const musicQuery = encodeURIComponent(text.substring(5).trim());
 
                 try {
-                    const originalUrl = `${MUSIC_API_BASE_URL}?query=${encodeURIComponent(musicQuery)}`;
-                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
+                    if (!musicQuery) {
+                        throw new Error(`Digite O Nome Da Música. Ex: **play Naked**`);
+                    }
 
-                    const musicReq = await fetch(proxyUrl);
+                    // 1. CHAMA A API DE MÚSICA ATRAVÉS DO CORSPROXY.IO
+                    // MUSIC_API_BASE_URL já contém: https://corsproxy.io/?<VREDEN_URL_CODIFICADA>
+                    // A Query é adicionada ao final.
+                    const musicUrl = MUSIC_API_BASE_URL + musicQuery; 
                     
-                    if (!musicReq.ok) throw new Error(`Erro HTTP: ${musicReq.status}`);
+                    let musicRes = await fetch(musicUrl);
                     
-                    const musicRes = await musicReq.json();
+                    if (!musicRes.ok) throw new Error(`Erro HTTP: ${musicRes.status}`);
+                    
+                    musicRes = await musicRes.json();
 
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
-                        errorMessage = (musicQuery === '') ? `Digite O Nome Da Música. Ex: **play Naked**` : `A Música Foi Encontrada, Mas O Servidor Falhou Ao Realizar O Download.`;
-                        throw new Error(errorMessage);
+                        // Checa se o resultado da busca interna (result.status) também falhou
+                        const innerStatus = musicRes.result ? musicRes.result.status : false;
+                        if(innerStatus === false) {
+                            throw new Error('Não Encontrei a Música ou o Link Está Indisponível.');
+                        }
+                        throw new Error('Resposta Inválida do Servidor de Música.');
                     }
                     
                     document.getElementById(loadingId).remove();
-                    addMusicMessage(musicRes.result);
+                    
+                    // Passa o objeto 'result' que contém metadata e download
+                    addMusicMessage(musicRes.result); 
 
                 } catch (err) {
                     const loader = document.getElementById(loadingId);
                     if(loader) loader.remove();
                     
-                    const errorMsg = err.message === 'Failed to fetch' 
-                        ? "Erro De Conexão. Tente Novamente." 
-                        : err.message;
+                    const errorMsg = err.message.includes('Failed to fetch')
+                        ? "Erro De Conexão. Tente Novamente. (Verifique O Proxy CORS)" 
+                        : err.message.replace('Error: ', '');
                         
-                    addMessage('ai', `**Erro Na Música:** ${errorMsg}`);
+                    aiAnswer = `**Erro Na Música:** ${errorMsg}`;
+                    addMessage('ai', aiAnswer, 'text'); 
                 } finally {
                     resetInput();
                     return; 
                 }
             }
 
+            // --- Chamada da API de Chat (Resposta Geral) ---
             const loadingId = addLoading();
 
             try {
+                // A instrução do sistema foi mantida para que a API retorne a resposta objetiva/limpa que o usuário deseja
                 const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
                 
-                // --- CORREÇÃO APLICADA AQUI ---
-                // 1. Monta a URL da API
-                const targetUrl = CHAT_API_URL + encodeURIComponent(finalInstruction);
-                // 2. Encaminha via Proxy para evitar CORS
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                const chatUrl = CHAT_API_URL + encodeURIComponent(finalInstruction);
                 
-                const req = await fetch(proxyUrl);
+                const req = await fetch(chatUrl);
                 
                 if (!req.ok) throw new Error(`Erro HTTP: ${req.status}`);
 
@@ -467,7 +943,6 @@
                 const loader = document.getElementById(loadingId);
                 if(loader) loader.remove();
 
-                // --- CORREÇÃO DE LEITURA DO JSON ---
                 let answer = "Sem resposta.";
                 
                 if (res.data && res.data.result) {
@@ -481,16 +956,23 @@
                 }
                 
                 // Filtros de identidade
-                answer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
-                answer = answer.replace(/como uma IA/gi, 'como Crisálida');
-                answer = answer.replace(/fui treinado/gi, 'fui programado');
+                aiAnswer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
+                aiAnswer = aiAnswer.replace(/como uma IA/gi, 'como Crisálida');
+                aiAnswer = aiAnswer.replace(/fui treinado/gi, 'fui programado');
 
-                addMessage('ai', answer);
+                if (responseType === 'audio-sent') {
+                    addAiAudioMessage(aiAnswer); 
+                } else {
+                    addMessage('ai', aiAnswer, 'text'); 
+                }
 
             } catch (err) {
                 const loader = document.getElementById(loadingId);
                 if(loader) loader.remove();
-                addMessage('ai', `**Erro:** Falha Na Conexão Com Crisálida. (${err.message})`);
+                
+                let errorText = `**Erro:** Falha Na Conexão Com Crisálida. (${err.message.includes('Failed to fetch') ? 'Erro de rede ou a API está offline' : `Erro interno: ${err.message}`})`;
+                
+                addMessage('ai', errorText, 'text'); 
             } finally {
                 resetInput();
             }
@@ -499,7 +981,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             if (chatContainer.children.length === 1 && chatContainer.children[0].id === 'empty-state') {
                 emptyState.style.display = 'none';
-                addMessage('ai', "Oi, Eu Sou A Crisálida, Uma IA Criada Pelo Redzin. Por Favor, Comece A Conversa. (Dica: Use **play [música]** Para Baixar Uma Música!)");
+                const welcomeMsg = "Oi, Eu Sou A Crisálida, Uma IA Criada Pelo Redzin. Por Favor, Comece A Conversa. (Dica: Use **play [música]** Para Baixar Uma Música!)";
+                addMessage('ai', welcomeMsg, 'text'); 
             }
         });
     </script>
