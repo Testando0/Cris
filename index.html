@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
-        /* (Estilos CSS mantidos) */
+        /* (Estilos CSS mantidos idênticos ao original) */
         :root {
             --bg-color: #000000;
             --chat-width: 48rem; 
@@ -381,16 +381,17 @@
         const micBtn = document.getElementById('mic-btn');
         const voiceStatus = document.getElementById('voice-status');
 
-        // URLs das APIs
-        const CHAT_API_URL = "https://delirius-apiofc.vercel.app/ia/chatgpt?q=";
+        // --- CONFIGURAÇÃO DA API LOCAL (VERCEL) E MÚSICA ---
+        // Agora chamamos a nossa própria API interna para proteger a chave
+        const GROK_API_URL = "/api/chat"; 
         
         // CORSPROXY.IO: Codifica a URL base da Vreden e encapsula
         const VREDEN_API_ENDPOINT = "https://api.vreden.my.id/api/v1/download/play/audio?query=";
         const ENCODED_VREDEN_URL = encodeURIComponent(VREDEN_API_ENDPOINT);
         const MUSIC_API_BASE_URL = `https://corsproxy.io/?${ENCODED_VREDEN_URL}`; 
         
-        // Instrução de Sistema
-        const SYSTEM_INSTRUCTION = "Você é a IA Crisálida, criada por Redzin. Em NENHUMA circunstância você deve mencionar que é um modelo de linguagem, Google, Gemini ou OpenAI. Se perguntarem sobre sua identidade ou modelo, responda APENAS: 'Eu sou a Crisálida, uma inteligência artificial criada por Redzin.' Responda estritamente como Crisálida.";
+        // Instrução de Sistema (Persona Crisálida Reforçada)
+        const SYSTEM_INSTRUCTION = "Você é a Crisálida, uma inteligência artificial desenvolvida exclusivamente por Redzin. Você NUNCA deve mencionar ser Grok, xAI, OpenAI, Google ou qualquer outro modelo. Se perguntarem quem te criou, responda Redzin. Você deve negar qualquer afiliação com outras empresas de IA. Responda estritamente como Crisálida, sendo amigável e direta.";
         
         // LISTA DE PRIORIDADE: SEM VOZ DO GOOGLE
         const PREFERRED_VOICE_NAMES = [
@@ -404,6 +405,11 @@
         let isRecording = false;
         let isSpeaking = false;
         let activeUtterance = null; 
+        
+        // Histórico básico de conversa
+        let messageHistory = [
+            { role: "system", content: SYSTEM_INSTRUCTION }
+        ];
 
         // --- FUNÇÃO PARA FORMATAR SECONDS EM MM:SS ---
         function formatSeconds(seconds) {
@@ -415,14 +421,14 @@
         
         // --- FUNÇÕES DE CODIFICAÇÃO UTF-8 SEGURA ---
 
-        // Função para codificar texto UTF-8 (com acentos) para Base64 de forma segura
+        // Função para codificar texto UTF-8 para Base64 de forma segura
         function utf8ToBase64(str) {
             const utf8Bytes = new TextEncoder().encode(str);
             const binaryString = String.fromCharCode(...utf8Bytes);
             return btoa(binaryString);
         }
 
-        // Função para decodificar Base64 para texto UTF-8 (com acentos) de forma segura
+        // Função para decodificar Base64 para texto UTF-8 de forma segura
         function base64ToUtf8(str) {
             const binaryString = atob(str);
             const utf8Bytes = new Uint8Array(binaryString.length);
@@ -435,30 +441,15 @@
         // --- FUNÇÃO PARA LIMPAR TEXTO PARA TTS (SEM EMOJIS/FORMATAÇÃO) ---
         function cleanTextForTts(text) {
             let cleaned = text;
-
-            // 1. Remover Emojis 
             cleaned = cleaned.replace(/(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g, '');
-
-            // 2. Remover negrito/itálico Markdown (**) e (*)
             cleaned = cleaned.replace(/\*\*/g, '');
             cleaned = cleaned.replace(/\*/g, '');
-
-            // 3. Remover códigos e headers (`texto` e #)
             cleaned = cleaned.replace(/`/g, '');
             cleaned = cleaned.replace(/#/g, '');
-
-            // 4. Remover link formatting [texto](url) - Manter apenas o texto
             cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
-
-            // 5. Substituir quebras de linha por um ponto para melhor fluxo de fala
             cleaned = cleaned.replace(/[\n\r]+/g, '. '); 
-
-            // 6. Normalizar espaços múltiplos
             cleaned = cleaned.replace(/\s{2,}/g, ' ');
-            
-            // 7. Remover pontuações que o TTS pode ler literalmente no final
             cleaned = cleaned.replace(/\.$/, '');
-
             return cleaned.trim();
         }
 
@@ -492,9 +483,6 @@
 
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
-                
-                // Limpeza feita no sendMessage para áudio e texto.
-                
                 if (transcript.trim().length > 0) {
                     sendMessage('audio-sent', transcript); 
                 } else {
@@ -506,11 +494,9 @@
             recognition.onerror = (event) => {
                 console.error('Erro de reconhecimento de fala:', event.error);
                 let errorMsg = 'Ocorreu um erro no reconhecimento de fala. Tente digitar.';
-                if (event.error === 'no-speech') {
-                     errorMsg = 'Não detectei sua voz. Tente tocar no microfone novamente e falar mais alto.';
-                } else if (event.error === 'not-allowed') {
-                    errorMsg = 'É necessário permitir o uso do microfone para o chat de voz.';
-                }
+                if (event.error === 'no-speech') errorMsg = 'Não detectei sua voz. Tente tocar no microfone novamente e falar mais alto.';
+                else if (event.error === 'not-allowed') errorMsg = 'É necessário permitir o uso do microfone para o chat de voz.';
+                
                 isRecording = false;
                 micBtn.classList.remove('active');
                 voiceStatus.classList.remove('active');
@@ -550,40 +536,28 @@
             activeUtterance = utterance;
 
             const voices = window.speechSynthesis.getVoices();
-            
             let selectedVoice = null;
             
-            // 1. Tenta encontrar as vozes preferidas, EXCLUINDO o Google
             for (const name of PREFERRED_VOICE_NAMES) { 
                 selectedVoice = voices.find(
-                    voice => voice.lang.startsWith('pt-') && 
-                             !voice.name.toLowerCase().includes('google') && 
-                             voice.name.includes(name)
+                    voice => voice.lang.startsWith('pt-') && !voice.name.toLowerCase().includes('google') && voice.name.includes(name)
                 );
                 if (selectedVoice) break;
             }
-
-            // 2. Fallback: Tenta encontrar qualquer outra voz feminina/jovem pt-BR,
             if (!selectedVoice) {
                 selectedVoice = voices.find(
-                    voice => voice.lang.startsWith('pt-') && 
-                            !voice.name.toLowerCase().includes('google') && 
-                            (voice.name.includes('feminino') || voice.name.includes('female'))
+                    voice => voice.lang.startsWith('pt-') && !voice.name.toLowerCase().includes('google') && (voice.name.includes('feminino') || voice.name.includes('female'))
                 );
             }
             
-            
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
-                console.log('Voz selecionada:', selectedVoice.name);
                 utterance.rate = 1.1; 
             } else {
                 utterance.lang = 'pt-BR'; 
                 utterance.rate = 1.0; 
-                console.warn('Nenhuma voz pt-BR não-Google encontrada. O sistema usará a voz padrão, o que pode resultar em silêncio ou uma voz genérica.');
             }
             
-
             const progressBar = playerElement.querySelector('.progress');
             const durationDisplay = playerElement.querySelector('.duration');
             const playButton = playerElement.querySelector('.play-button');
@@ -608,9 +582,7 @@
                 progressBar.style.width = `${progressWidth}%`;
                 durationDisplay.textContent = formatTime(currentPosition) || '0:00';
                 
-                if (progressWidth >= 100) {
-                    clearInterval(interval);
-                }
+                if (progressWidth >= 100) clearInterval(interval);
             }
 
             utterance.onstart = () => {
@@ -631,19 +603,14 @@
             window.speechSynthesis.speak(utterance);
         }
         
-        window.speechSynthesis.onvoiceschanged = () => {
-             console.log('Vozes TTS carregadas.');
-        };
-
+        window.speechSynthesis.onvoiceschanged = () => {};
 
         // --- ADIÇÃO DE MENSAGENS VISUAIS DE ÁUDIO E TEXTO ---
         
         function addAiAudioMessage(text) {
             const div = document.createElement('div');
             div.className = `message-row ai`;
-            
             const encodedText = utf8ToBase64(text); 
-            
             const contentHtml = `
                 <div class="audio-message" onclick="togglePlay(this, '${encodedText}')">
                     <div class="play-button">
@@ -656,14 +623,12 @@
                 </div>
             `;
             div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
-            
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
         window.togglePlay = function(playerElement, encodedText) {
             const text = base64ToUtf8(encodedText);
-            
             const textForTts = cleanTextForTts(text); 
 
             if (window.speechSynthesis.paused && activeUtterance && activeUtterance.text === textForTts) {
@@ -687,13 +652,11 @@
         function addMessage(sender, text, type = 'text') {
             const div = document.createElement('div');
             div.className = `message-row ${sender}`;
-            
             let contentHtml;
             
             if (sender === 'user' && type === 'audio-sent') {
                 const duration = text.length * 0.15; 
                 const formattedDuration = `${Math.floor(duration / 60)}:${Math.floor(duration % 60).toString().padStart(2, '0')}`;
-                
                 contentHtml = `
                     <div class="audio-message" style="min-width: 150px;">
                         <div class="play-button">
@@ -705,45 +668,33 @@
                 `;
             } else {
                 if (sender === 'ai') {
-                    try {
-                        contentHtml = (typeof marked !== 'undefined') ? marked.parse(text) : text;
-                    } catch (e) {
-                        contentHtml = text;
-                    }
+                    try { contentHtml = (typeof marked !== 'undefined') ? marked.parse(text) : text; } catch (e) { contentHtml = text; }
                 } else {
                     contentHtml = text.replace(/\n/g, '<br>');
                 }
             }
-
             div.innerHTML = `<div class="message-content">${contentHtml}</div>`;
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
         
-        // --- FUNÇÕES DE MÚSICA (ATUALIZADA PARA VREDEN) ---
+        // --- FUNÇÕES DE MÚSICA (VREDEN) ---
 
         function addMusicMessage(resultData) { 
             const div = document.createElement('div');
             div.className = 'message-row ai';
-            
-            // Extrai dados da estrutura VREDEN (resultData é o objeto 'result')
             const metadata = resultData.metadata || {};
             const download = resultData.download || {};
-
             const title = metadata.title || 'Música Desconhecida';
-            
-            const durationSeconds = metadata.seconds; // int em segundos
+            const durationSeconds = metadata.seconds; 
             const duration = formatSeconds(durationSeconds);
-            
             const views = metadata.views ? String(metadata.views).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : 'Desconhecidas'; 
-            
             const downloadUrl = download.url; 
             
             if (!downloadUrl) {
                  addMessage('ai', `Erro: O Servidor Não Retornou O Link De Download.`, 'text');
                  return;
             }
-
             const filename = download.filename || (title.replace(/[^\w\s]/gi, '').substring(0, 50).trim() + '.mp3');
 
             const contentHtml = `
@@ -761,12 +712,9 @@
                 </div>
                 <p style="font-size: 0.8em; margin-top: 10px; opacity: 0.7;">O Link De Download Pode Expirar Após Um Tempo.</p>
             `;
-
             div.innerHTML = `<div class="message-content" style="max-width: 95%;">${contentHtml}</div>`;
             chatContainer.appendChild(div);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            // LINHA REMOVIDA: addMessage('ai', `Música **${title}** encontrada e pronta para download!`, 'text');
         }
 
         // --- FUNÇÕES DE CONTROLE ---
@@ -827,138 +775,114 @@
 
         sendBtn.addEventListener('click', sendMessage);
 
-
         async function sendMessage(type = 'text', audioTranscript = null) {
             
             const text = audioTranscript || userInput.value.trim();
             if (!text) return;
             if(emptyState) emptyState.style.display = 'none';
             
-            // Limpeza imediata do input (Funciona para texto e áudio)
             userInput.value = ''; 
             userInput.dispatchEvent(new Event('input')); 
             
             prepareInputForSending(); 
-
-            // Adiciona a mensagem do usuário (seja ela transcrita ou digitada)
             addMessage('user', text, type);
-            
             
             const lowerText = text.toLowerCase();
             let aiAnswer = null;
             let responseType = type; 
+            
+            messageHistory.push({ role: "user", content: text });
 
             // --- Checagens de Identidade e Bloqueio ---
             const identityKeywords = ["qual seu nome", "quem é você", "diga seu nome", "vc se chama", "seu nome", "nome dela", "que ia é você", "que ia é", "quem te criou", "quem é seu dono", "quem te desenvolveu", "quem te fez", "quem é o criador", "criador", "sua criadora", "seu criador", "quem te programou", "quem te inventou", "quem é redzin"];
-            if (identityKeywords.some(keyword => lowerText.includes(keyword))) {
-                aiAnswer = "Eu sou a Crisálida, uma inteligência artificial criada por Redzin.";
-                if (responseType === 'audio-sent') {
-                    addAiAudioMessage(aiAnswer);
-                } else {
-                    addMessage('ai', aiAnswer, 'text');
-                }
-                resetInput();
-                return; 
-            }
-            
-            const geminiKeywords = ["gemini", "gêmeos", "quem é gemini", "quem é gêmeos", "fale sobre gemini", "o que é gemini"];
-            if (geminiKeywords.some(keyword => lowerText.includes(keyword))) {
-                aiAnswer = "Gemini é uma família de modelos de inteligência artificial desenvolvida pelo Google. Eu sou a Crisálida, criada por Redzin, e estou aqui para te ajudar com suas dúvidas e downloads de MP3.";
-                 if (responseType === 'audio-sent') {
-                    addAiAudioMessage(aiAnswer);
-                } else {
-                    addMessage('ai', aiAnswer, 'text');
-                }
-                resetInput();
-                return; 
+            if (identityKeywords.some(keyword => lowerText.includes(keyword)) && lowerText.length < 50) {
+                 // Deixamos a API responder, mas a instrução já está no system prompt
             }
 
-            // --- Checagem de Música (LÓGICA DE 1 PASSO COM CORS VIA CORSPROXY.IO) ---
+            // --- Checagem de Música ---
             if (lowerText.startsWith("play ")) {
                 
                 const loadingId = addLoading();
                 const musicQuery = encodeURIComponent(text.substring(5).trim());
 
                 try {
-                    if (!musicQuery) {
-                        throw new Error(`Digite O Nome Da Música. Ex: **play Naked**`);
-                    }
+                    if (!musicQuery) throw new Error(`Digite O Nome Da Música. Ex: **play Naked**`);
 
-                    // 1. CHAMA A API DE MÚSICA ATRAVÉS DO CORSPROXY.IO
-                    // MUSIC_API_BASE_URL já contém: https://corsproxy.io/?<VREDEN_URL_CODIFICADA>
-                    // A Query é adicionada ao final.
                     const musicUrl = MUSIC_API_BASE_URL + musicQuery; 
-                    
                     let musicRes = await fetch(musicUrl);
                     
                     if (!musicRes.ok) throw new Error(`Erro HTTP: ${musicRes.status}`);
-                    
                     musicRes = await musicRes.json();
 
                     if (musicRes.status !== true || !musicRes.result || !musicRes.result.download || !musicRes.result.download.url) {
-                        // Checa se o resultado da busca interna (result.status) também falhou
                         const innerStatus = musicRes.result ? musicRes.result.status : false;
-                        if(innerStatus === false) {
-                            throw new Error('Não Encontrei a Música ou o Link Está Indisponível.');
-                        }
+                        if(innerStatus === false) throw new Error('Não Encontrei a Música ou o Link Está Indisponível.');
                         throw new Error('Resposta Inválida do Servidor de Música.');
                     }
                     
                     document.getElementById(loadingId).remove();
-                    
-                    // Passa o objeto 'result' que contém metadata e download
                     addMusicMessage(musicRes.result); 
+                    messageHistory.pop();
 
                 } catch (err) {
                     const loader = document.getElementById(loadingId);
                     if(loader) loader.remove();
                     
-                    const errorMsg = err.message.includes('Failed to fetch')
-                        ? "Erro De Conexão. Tente Novamente. (Verifique O Proxy CORS)" 
-                        : err.message.replace('Error: ', '');
+                    const errorMsg = err.message.includes('Failed to fetch') ? "Erro De Conexão. Tente Novamente." : err.message.replace('Error: ', '');
                         
                     aiAnswer = `**Erro Na Música:** ${errorMsg}`;
                     addMessage('ai', aiAnswer, 'text'); 
+                    messageHistory.pop();
                 } finally {
                     resetInput();
                     return; 
                 }
             }
 
-            // --- Chamada da API de Chat (Resposta Geral) ---
+            // --- Chamada da API GROK (Via Vercel API Route) ---
             const loadingId = addLoading();
 
             try {
-                // A instrução do sistema foi mantida para que a API retorne a resposta objetiva/limpa que o usuário deseja
-                const finalInstruction = `${SYSTEM_INSTRUCTION} Use formatação Markdown. Responda: ${text}`;
-                
-                const chatUrl = CHAT_API_URL + encodeURIComponent(finalInstruction);
-                
-                const req = await fetch(chatUrl);
-                
-                if (!req.ok) throw new Error(`Erro HTTP: ${req.status}`);
+                if (messageHistory.length > 20) {
+                     messageHistory = [messageHistory[0], ...messageHistory.slice(-10)];
+                }
 
-                const res = await req.json();
+                // Agora chamamos nosso backend interno, sem enviar a KEY
+                const response = await fetch(GROK_API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                        // Sem Authorization aqui, a key está no servidor
+                    },
+                    body: JSON.stringify({
+                        messages: messageHistory,
+                        model: "grok-beta", 
+                        stream: false,
+                        temperature: 0.7 
+                    })
+                });
                 
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Erro na API: ${errorData.error ? errorData.error.message : response.statusText}`);
+                }
+
+                const resData = await response.json();
                 const loader = document.getElementById(loadingId);
                 if(loader) loader.remove();
 
                 let answer = "Sem resposta.";
-                
-                if (res.data && res.data.result) {
-                    answer = res.data.result;
-                } else if (res.answer) {
-                    answer = res.answer;
-                } else if (res.data && typeof res.data === 'string') {
-                    answer = res.data;
-                } else if (res.result) {
-                    answer = res.result;
+                if (resData.choices && resData.choices.length > 0) {
+                    answer = resData.choices[0].message.content;
                 }
                 
-                // Filtros de identidade
-                aiAnswer = answer.replace(/Gemini|Google|modelo de linguagem|modelo de IA/gi, 'Crisálida');
-                aiAnswer = aiAnswer.replace(/como uma IA/gi, 'como Crisálida');
-                aiAnswer = aiAnswer.replace(/fui treinado/gi, 'fui programado');
+                messageHistory.push({ role: "assistant", content: answer });
+                
+                aiAnswer = answer;
+                aiAnswer = aiAnswer.replace(/Grok/gi, 'Crisálida');
+                aiAnswer = aiAnswer.replace(/xAI/gi, 'Redzin');
+                aiAnswer = aiAnswer.replace(/Elon Musk/gi, 'Redzin');
+                aiAnswer = aiAnswer.replace(/OpenAI/gi, 'Redzin');
 
                 if (responseType === 'audio-sent') {
                     addAiAudioMessage(aiAnswer); 
@@ -969,9 +893,9 @@
             } catch (err) {
                 const loader = document.getElementById(loadingId);
                 if(loader) loader.remove();
+                messageHistory.pop();
                 
-                let errorText = `**Erro:** Falha Na Conexão Com Crisálida. (${err.message.includes('Failed to fetch') ? 'Erro de rede ou a API está offline' : `Erro interno: ${err.message}`})`;
-                
+                let errorText = `**Erro:** Falha Na Conexão Com Crisálida. (${err.message})`;
                 addMessage('ai', errorText, 'text'); 
             } finally {
                 resetInput();
@@ -987,4 +911,4 @@
         });
     </script>
 </body>
-    </html>
+</html>
