@@ -1,0 +1,15 @@
+{
+  "name": "Crisálida",
+  "short_name": "Crisálida",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "https://uploads.zero-two-apis.com.br/uploads/images/5d83fa84fa51fe5f32b71814dd14e4f2b7a434d8bec27c2d3102c824de8bc667.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
